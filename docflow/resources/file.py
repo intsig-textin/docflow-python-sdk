@@ -23,7 +23,7 @@ class FileResource(BaseResource):
     def upload(
         self,
         workspace_id: str,
-        category: str,
+        category: Optional[str] = None,
         file_path: Optional[str] = None,
         file_urls: Optional[List[str]] = None,
         batch_number: Optional[str] = None,
@@ -164,7 +164,7 @@ class FileResource(BaseResource):
     def upload_sync(
         self,
         workspace_id: str,
-        category: str,
+        category: Optional[str] = None,
         file_path: Optional[str] = None,
         file_urls: Optional[List[str]] = None,
         batch_number: Optional[str] = None,
