@@ -78,3 +78,23 @@ class MismatchAction(str, Enum):
     """
     DEFAULT = "default"
     WARNING = "warning"
+
+
+class RecognitionStatus(int, Enum):
+    """
+    文件识别状态
+
+    Attributes:
+        PENDING: 待识别
+        SUCCESS: 识别成功
+        FAILED: 识别失败
+        CLASSIFYING: 分类中
+        EXTRACTING: 抽取中
+        PREPARING: 准备中
+    """
+    PENDING = 0
+    SUCCESS = 1
+    FAILED = 2
+    CLASSIFYING = 3
+    EXTRACTING = 4
+    PREPARING = 5

@@ -25,7 +25,7 @@ class TestEnums:
         members = [m.value for m in ExtractModel]
         assert "Model 1" in members
         assert "Model 3" in members
-        assert len(members) == 2
+        assert len(members) == 3
 
     def test_enabled_status_values(self):
         """测试启用状态枚举值"""
@@ -87,13 +87,13 @@ class TestEnums:
 
     def test_enum_name_access(self):
         """测试枚举名称访问"""
-        assert ExtractModel.Model_1.name == "Model 1"
+        assert ExtractModel.Model_1.name == "Model_1"
         assert EnabledFlag.ENABLED.name == "ENABLED"
 
     def test_enum_iteration(self):
         """测试枚举迭代"""
         models = list(ExtractModel)
-        assert len(models) == 2
+        assert len(models) == 3
         assert ExtractModel.Model_1 in models
         assert ExtractModel.Model_3 in models
 

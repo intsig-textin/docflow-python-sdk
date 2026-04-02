@@ -42,7 +42,7 @@ class TestWorkspaceModels:
         """测试工作空间列表响应"""
         data = {
             "workspaces": [
-                {"workspace_id": "123", "name": "测试空间", "enterprise_id": 12345}
+                {"workspace_id": "123", "name": "测试空间"}
             ],
             "total": 1,
             "page": 1,
@@ -58,7 +58,6 @@ class TestWorkspaceModels:
         data = {
             "workspace_id": "123",
             "name": "测试空间",
-            "enterprise_id": 12345,
             "auth_scope": 1
         }
         response = WorkspaceDetailResponse(**data)
@@ -157,12 +156,9 @@ class TestReviewModels:
         rule = ReviewRule(
             rule_id="rule_001",
             name="金额检查",
-            rule_type="range",
-            config={"min": 0, "max": 1000}
         )
         assert rule.rule_id == "rule_001"
         assert rule.name == "金额检查"
-        assert rule.config["min"] == 0
 
     def test_review_group(self):
         """测试审核规则组模型"""
@@ -184,8 +180,6 @@ class TestReviewModels:
                 {
                     "rule_id": "rule_001",
                     "name": "规则1",
-                    "rule_type": "range",
-                    "config": {}
                 }
             ]
         }

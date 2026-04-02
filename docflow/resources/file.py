@@ -31,11 +31,11 @@ class FileResource(BaseResource):
         split_flag: Optional[bool] = None,
         crop_flag: Optional[bool] = None,
         target_process: Optional[str] = None,
-        parser_remove_watermark: Optional[bool] = None,
-        parser_crop_dewarp: Optional[bool] = None,
-        parser_apply_merge: Optional[bool] = None,
+        parser_remove_watermark: Optional[int] = None,
+        parser_crop_dewarp: Optional[int] = None,
+        parser_apply_merge: Optional[int] = None,
         parser_formula_level: Optional[int] = None,
-        parser_table_text_split_mode: Optional[str] = None,
+        parser_table_text_split_mode: Optional[int] = None,
     ) -> FileUploadResponse:
         """
         上传文件（异步）
@@ -172,11 +172,11 @@ class FileResource(BaseResource):
         split_flag: Optional[bool] = None,
         crop_flag: Optional[bool] = None,
         target_process: Optional[str] = None,
-        parser_remove_watermark: Optional[bool] = None,
-        parser_crop_dewarp: Optional[bool] = None,
-        parser_apply_merge: Optional[bool] = None,
+        parser_remove_watermark: Optional[int] = None,
+        parser_crop_dewarp: Optional[int] = None,
+        parser_apply_merge: Optional[int] = None,
         parser_formula_level: Optional[int] = None,
-        parser_table_text_split_mode: Optional[str] = None,
+        parser_table_text_split_mode: Optional[int] = None,
         with_task_detail_url: Optional[bool] = None,
     ) -> FileFetchResponse:
         """
@@ -314,7 +314,7 @@ class FileResource(BaseResource):
         batch_number: Optional[str] = None,
         file_id: Optional[str] = None,
         category: Optional[str] = None,
-        recognition_status: Optional[str] = None,
+        recognition_status: Optional[int] = None,
         verification_status: Optional[int] = None,
         start_time: Optional[str] = None,
         end_time: Optional[str] = None,
@@ -331,7 +331,7 @@ class FileResource(BaseResource):
             batch_number: 批次编号
             file_id: 文件ID
             category: 文件类别
-            recognition_status: 识别状态（success, failed, processing）
+            recognition_status: 识别状态（0:待识别 1:识别成功 2:识别失败 3:分类中 4:抽取中 5:准备中）
             verification_status: 核对状态（0:待核对 2:已确认 3:已拒绝 4:已删除 5:推迟处理）
             start_time: 开始时间（RFC3339格式）
             end_time: 结束时间（RFC3339格式）
@@ -377,7 +377,7 @@ class FileResource(BaseResource):
         workspace_id: str,
         batch_number: Optional[str] = None,
         category: Optional[str] = None,
-        recognition_status: Optional[str] = None,
+        recognition_status: Optional[int] = None,
         verification_status: Optional[int] = None,
         start_time: Optional[str] = None,
         end_time: Optional[str] = None,
@@ -393,7 +393,7 @@ class FileResource(BaseResource):
             workspace_id: 空间ID
             batch_number: 批次编号
             category: 文件类别
-            recognition_status: 识别状态
+            recognition_status: 识别状态（0:待识别 1:识别成功 2:识别失败 3:分类中 4:抽取中 5:准备中）
             verification_status: 核对状态
             start_time: 开始时间
             end_time: 结束时间

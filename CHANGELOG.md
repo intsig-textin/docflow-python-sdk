@@ -280,7 +280,7 @@
 
 - ✨ **完整的用户文档**
   - README.md: 快速开始和基本用法
-  - QUICKSTART.md: 详细的快速开始指南
+  - examples/QUICKSTART.md: 详细的快速开始指南
   - docs/user-manual.md: 完整的用户手册（11 章）
     - 第 1 章：安装和配置
     - 第 2 章：客户端初始化
@@ -383,4 +383,4 @@
 - `Fixed`: Bug 修复
 - `Security`: 安全相关
 
-[1.0.0]: https://github.com/example/docflow-sdk/releases/tag/v1.0.0
+[1.0.0]: https://github.com/intsig-textin/docflow-python-sdk/releases/tag/v1.0.0

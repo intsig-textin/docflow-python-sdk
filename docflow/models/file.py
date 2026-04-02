@@ -14,7 +14,7 @@ class FileInfo:
     format: str
     task_id: Optional[str] = None
     category: Optional[str] = None
-    recognition_status: Optional[str] = None
+    recognition_status: Optional[int] = None
     verification_status: Optional[int] = None
     data: Optional[Dict[str, Any]] = None
     task_detail_url: Optional[str] = None

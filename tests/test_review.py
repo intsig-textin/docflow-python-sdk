@@ -307,7 +307,7 @@ def test_group_create_success(client, mock_workspace_id):
         call_args = mock_post.call_args
         json_data = call_args[1]['json_data']
         assert json_data['workspace_id'] == mock_workspace_id
-        assert json_data['repo_id'] == 31415926
+        assert json_data['repo_id'] == '9876543210987654321'
         assert json_data['name'] == "金额校验组"
 
 

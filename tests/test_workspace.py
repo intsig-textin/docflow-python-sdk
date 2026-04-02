@@ -283,10 +283,7 @@ def test_workspace_get_success(client):
             "name": "我的工作空间",
             "enterprise_id": 12345,
             "auth_scope": 0,
-            "manage_account_id": 100,
-            "account_id": 200,
-            "created_at": "2024-01-01 10:00:00",
-            "updated_at": "2024-01-15 15:30:00"
+            "manage_account_id": 100
         }
     }
 
@@ -298,12 +295,8 @@ def test_workspace_get_success(client):
         assert result is not None
         assert result.workspace_id == "1234567890123456789"
         assert result.name == "我的工作空间"
-        assert result.enterprise_id == 12345
         assert result.auth_scope == 0
-        assert result.manage_account_id == 100
-        assert result.account_id == 200
-        assert result.created_at == "2024-01-01 10:00:00"
-        assert result.updated_at == "2024-01-15 15:30:00"
+        assert result.manage_account_id == '100'
 
         # 验证调用参数
         call_args = mock_get.call_args

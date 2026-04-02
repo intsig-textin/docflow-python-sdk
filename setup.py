@@ -7,14 +7,14 @@ with open("README.md", "r", encoding="utf-8") as fh:
     long_description = fh.read()
 
 setup(
-    name="docflow-sdk",
+    name="docflow-python-sdk",
     version="1.0.0",
     author="Docflow Team",
     author_email="support@example.com",
     description="Docflow Python SDK",
     long_description=long_description,
     long_description_content_type="text/markdown",
-    url="https://github.com/example/docflow-sdk",
+    url="https://github.com/intsig-textin/docflow-python-sdk",
     packages=find_packages(exclude=["tests", "examples"]),
     classifiers=[
         "Development Status :: 4 - Beta",
