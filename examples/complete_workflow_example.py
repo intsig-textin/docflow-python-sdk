@@ -39,7 +39,6 @@ def scenario_1_invoice_processing():
     print("\n[步骤1] 创建工作空间...")
     try:
         workspace = client.workspace.create(
-            enterprise_id=12345,
             name=f"发票处理工作空间_{datetime.now().strftime('%Y%m%d')}",
             auth_scope=AuthScope.PUBLIC,
             description="用于处理增值税专用发票"

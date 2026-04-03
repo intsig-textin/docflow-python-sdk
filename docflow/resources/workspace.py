@@ -92,7 +92,6 @@ class WorkspaceResource(BaseResource):
 
     def create(
         self,
-        enterprise_id: int,
         name: str,
         auth_scope: Union[AuthScope, int],
         description: Optional[str] = None,
@@ -101,8 +100,11 @@ class WorkspaceResource(BaseResource):
         """
         创建工作空间
 
+        注意：企业ID通过请求头 x-ti-enterprise-id 传递，需要在初始化客户端时配置：
+        - 从环境变量：export DOCFLOW_ENTERPRISE_ID="12345"
+        - 代码配置：client = DocflowClient(..., enterprise_id="12345")
+
         Args:
-            enterprise_id: 企业 ID
             name: 工作空间名称（最大 50 字符）
             auth_scope: 权限范围（AuthScope.PRIVATE=0 或 AuthScope.PUBLIC=1，必填）
             description: 空间描述（可选，最大 200 字符）
@@ -118,19 +120,24 @@ class WorkspaceResource(BaseResource):
         Examples:
             >>> from docflow import AuthScope
             >>>
-            >>> # 使用枚举（推荐）
+            >>> # 方式1：从环境变量配置企业ID
+            >>> # export DOCFLOW_ENTERPRISE_ID="12345"
+            >>> client = DocflowClient.from_env()
             >>> workspace = client.workspace.create(
-            ...     enterprise_id=12345,
             ...     name="我的工作空间",
             ...     auth_scope=AuthScope.PUBLIC,
             ...     description="这是一个用于处理发票的工作空间"
             ... )
             >>>
-            >>> # 也支持直接使用数字
+            >>> # 方式2：代码中配置企业ID
+            >>> client = DocflowClient(
+            ...     app_id="your-app-id",
+            ...     secret_code="your-secret-code",
+            ...     enterprise_id="12345"
+            ... )
             >>> workspace = client.workspace.create(
-            ...     enterprise_id=12345,
             ...     name="我的工作空间",
-            ...     auth_scope=1
+            ...     auth_scope=1  # 也支持直接使用数字
             ... )
             >>> print(workspace.workspace_id)
         """
@@ -164,7 +171,6 @@ class WorkspaceResource(BaseResource):
             )
 
         payload = {
-            "enterprise_id": enterprise_id,
             "name": name,
             "auth_scope": auth_scope_value,
         }
@@ -181,13 +187,16 @@ class WorkspaceResource(BaseResource):
         return WorkspaceCreateResponse.from_dict(response["result"])
 
     def list(
-        self, enterprise_id: int, page: int = DEFAULT_PAGE, page_size: int = DEFAULT_PAGE_SIZE
+        self, page: int = DEFAULT_PAGE, page_size: int = DEFAULT_PAGE_SIZE
     ) -> WorkspaceListResponse:
         """
         获取工作空间列表
 
+        注意：企业ID通过请求头 x-ti-enterprise-id 传递，需要在初始化客户端时配置：
+        - 从环境变量：export DOCFLOW_ENTERPRISE_ID="12345"
+        - 代码配置：client = DocflowClient(..., enterprise_id="12345")
+
         Args:
-            enterprise_id: 企业 ID
             page: 页码，从 1 开始，默认 1
             page_size: 每页数量，默认 20
 
@@ -199,13 +208,20 @@ class WorkspaceResource(BaseResource):
             APIError: API 调用失败
 
         Examples:
-            >>> workspaces = client.workspace.list(
-            ...     enterprise_id=12345,
-            ...     page=1,
-            ...     page_size=20
-            ... )
+            >>> # 方式1：从环境变量配置企业ID
+            >>> # export DOCFLOW_ENTERPRISE_ID="12345"
+            >>> client = DocflowClient.from_env()
+            >>> workspaces = client.workspace.list(page=1, page_size=20)
             >>> for ws in workspaces.workspaces:
             ...     print(f"{ws.workspace_id}: {ws.name}")
+            >>>
+            >>> # 方式2：代码中配置企业ID
+            >>> client = DocflowClient(
+            ...     app_id="your-app-id",
+            ...     secret_code="your-secret-code",
+            ...     enterprise_id="12345"
+            ... )
+            >>> workspaces = client.workspace.list()
         """
         if page < 1:
             raise ValidationError(
@@ -219,7 +235,7 @@ class WorkspaceResource(BaseResource):
                 i18n_key='error.workspace.page_size_invalid'
             )
 
-        params = {"enterprise_id": enterprise_id, "page": page, "page_size": page_size}
+        params = {"page": page, "page_size": page_size}
 
         response = self.http_client.get(f"{API_PREFIX}/workspace/list", params=params)
 
@@ -416,15 +432,17 @@ class WorkspaceResource(BaseResource):
 
     def iter(
         self,
-        enterprise_id: int,
         page_size: int = 20,
         max_pages: Optional[int] = None
     ):
         """
         迭代获取工作空间列表，自动处理分页
 
+        注意：企业ID通过请求头 x-ti-enterprise-id 传递，需要在初始化客户端时配置：
+        - 从环境变量：export DOCFLOW_ENTERPRISE_ID="12345"
+        - 代码配置：client = DocflowClient(..., enterprise_id="12345")
+
         Args:
-            enterprise_id: 企业 ID
             page_size: 每页数量，默认 20，最大 100
             max_pages: 最大页数限制（可选，用于防止无限循环）
 
@@ -432,18 +450,31 @@ class WorkspaceResource(BaseResource):
             WorkspaceDetailResponse: 工作空间详细信息
 
         Examples:
+            >>> # 方式1：从环境变量配置企业ID
+            >>> # export DOCFLOW_ENTERPRISE_ID="12345"
+            >>> client = DocflowClient.from_env()
+            >>>
             >>> # 遍历所有工作空间
-            >>> for workspace in client.workspace.iter(enterprise_id=12345):
+            >>> for workspace in client.workspace.iter():
             ...     print(f"{workspace.workspace_id}: {workspace.name}")
             ...     if some_condition:
             ...         break  # 可以随时中断
             >>>
             >>> # 限制最大页数
-            >>> for workspace in client.workspace.iter(enterprise_id=12345, max_pages=5):
+            >>> for workspace in client.workspace.iter(max_pages=5):
             ...     print(workspace.name)
             >>>
             >>> # 转换为列表（获取所有数据）
-            >>> all_workspaces = list(client.workspace.iter(enterprise_id=12345))
+            >>> all_workspaces = list(client.workspace.iter())
+            >>>
+            >>> # 方式2：代码中配置企业ID
+            >>> client = DocflowClient(
+            ...     app_id="your-app-id",
+            ...     secret_code="your-secret-code",
+            ...     enterprise_id="12345"
+            ... )
+            >>> for workspace in client.workspace.iter():
+            ...     print(workspace.name)
         """
         page = 1
         pages_fetched = 0
@@ -455,7 +486,6 @@ class WorkspaceResource(BaseResource):
 
             # 获取当前页数据
             response = self.list(
-                enterprise_id=enterprise_id,
                 page=page,
                 page_size=page_size
             )

@@ -44,8 +44,8 @@ class DocflowClient:
         ... )
 
         >>> workspace = client.workspace.create(
-        ...     enterprise_id=12345,
-        ...     name="我的工作空间"
+        ...     name="我的工作空间",
+        ...     auth_scope=1
         ... )
     """
 
@@ -55,6 +55,7 @@ class DocflowClient:
         app_id_env: str = "DOCFLOW_APP_ID",
         secret_code_env: str = "DOCFLOW_SECRET_CODE",
         base_url_env: str = "DOCFLOW_BASE_URL",
+        enterprise_id_env: str = "DOCFLOW_ENTERPRISE_ID",
         **kwargs
     ) -> "DocflowClient":
         """
@@ -64,6 +65,7 @@ class DocflowClient:
             app_id_env: 应用ID的环境变量名，默认 "DOCFLOW_APP_ID"
             secret_code_env: 密钥的环境变量名，默认 "DOCFLOW_SECRET_CODE"
             base_url_env: API地址的环境变量名，默认 "DOCFLOW_BASE_URL"
+            enterprise_id_env: 企业ID的环境变量名，默认 "DOCFLOW_ENTERPRISE_ID"
             **kwargs: 其他配置参数
 
         Returns:
@@ -77,6 +79,7 @@ class DocflowClient:
             >>> # export DOCFLOW_APP_ID="your-app-id"
             >>> # export DOCFLOW_SECRET_CODE="your-secret-code"
             >>> # export DOCFLOW_BASE_URL="https://docflow.textin.com"  # 可选
+            >>> # export DOCFLOW_ENTERPRISE_ID="12345"  # 可选
             >>>
             >>> # 从环境变量创建客户端
             >>> client = DocflowClient.from_env()
@@ -90,17 +93,20 @@ class DocflowClient:
         app_id = os.getenv(app_id_env)
         secret_code = os.getenv(secret_code_env)
         base_url = os.getenv(base_url_env)
+        enterprise_id = os.getenv(enterprise_id_env)
 
         if not app_id:
             raise ValueError(f"环境变量 {app_id_env} 未设置")
         if not secret_code:
             raise ValueError(f"环境变量 {secret_code_env} 未设置")
 
-        # base_url 可选，如果未设置则使用默认值
+        # base_url 和 enterprise_id 可选，如果未设置则使用默认值
         init_kwargs = {"app_id": app_id, "secret_code": secret_code}
         if base_url:
             init_kwargs["base_url"] = base_url
-        
+        if enterprise_id:
+            init_kwargs["enterprise_id"] = enterprise_id
+
         init_kwargs.update(kwargs)
 
         return cls(**init_kwargs)
@@ -113,6 +119,7 @@ class DocflowClient:
         timeout: int = DEFAULT_TIMEOUT,
         max_retries: int = DEFAULT_MAX_RETRIES,
         language: str = DEFAULT_LANGUAGE,
+        enterprise_id: Optional[str] = None,
         retry_status_codes: Optional[List[int]] = None,
         retry_methods: Optional[List[str]] = None,
         retry_backoff_factor: float = DEFAULT_RETRY_BACKOFF_FACTOR,
@@ -128,6 +135,7 @@ class DocflowClient:
             timeout: 请求超时时间（秒），默认 30 秒
             max_retries: 最大重试次数，默认 3 次
             language: 错误消息语言，支持 'zh_CN'（中文）、'en_US'（英文），默认 'zh_CN'
+            enterprise_id: 企业ID（可选，会自动添加到请求头 x-ti-enterprise-id）
             retry_status_codes: 需要重试的HTTP状态码列表，默认 [423, 429, 500, 503, 504, 900]
             retry_methods: 允许重试的HTTP方法列表，默认 ["GET", "POST", "PUT", "DELETE"]
             retry_backoff_factor: 重试间隔计算因子，默认 1.0
@@ -158,6 +166,7 @@ class DocflowClient:
             retry_methods=retry_methods,
             retry_backoff_factor=retry_backoff_factor,
             language=language,
+            enterprise_id=enterprise_id,
             **kwargs
         )
 

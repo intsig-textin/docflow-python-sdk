@@ -129,6 +129,10 @@ class HTTPClient:
         if hasattr(self.config, 'language') and self.config.language:
             default_headers["lang"] = self.config.language
 
+        # 添加企业ID头
+        if hasattr(self.config, 'enterprise_id') and self.config.enterprise_id:
+            default_headers["x-ti-enterprise-id"] = str(self.config.enterprise_id)
+
         if headers:
             default_headers.update(headers)
 

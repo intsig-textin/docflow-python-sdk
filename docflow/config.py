@@ -24,6 +24,7 @@ class Config:
         retry_methods: Optional[List[str]] = None,
         retry_backoff_factor: float = DEFAULT_RETRY_BACKOFF_FACTOR,
         language: str = DEFAULT_LANGUAGE,
+        enterprise_id: Optional[str] = None,
         **kwargs
     ):
         """
@@ -37,12 +38,14 @@ class Config:
             retry_methods: 允许重试的HTTP方法列表，默认 ["GET", "POST", "PUT", "DELETE"]
             retry_backoff_factor: 重试间隔计算因子，默认 1.0
             language: API 请求语言，默认 'zh_CN'
+            enterprise_id: 企业ID（可选，会自动添加到请求头 x-ti-enterprise-id）
             **kwargs: 其他配置参数
         """
         self.base_url = base_url.rstrip("/")
         self.timeout = timeout
         self.max_retries = max_retries
         self.language = language
+        self.enterprise_id = enterprise_id
 
         # Retry 配置
         self.retry_status_codes = retry_status_codes or RETRY_STATUS_CODES

@@ -51,8 +51,8 @@ def main():
     print_section("DocFlow SDK 快速开始 - 费用报销场景")
 
     # 初始化客户端（从环境变量自动加载配置）
+    # 注意：DOCFLOW_ENTERPRISE_ID 会自动从环境变量加载到请求头
     client = DocflowClient.from_env()
-    enterprise_id = int(os.getenv("DOCFLOW_ENTERPRISE_ID", "0"))
 
     # 样本文件目录
     sample_dir = os.path.join(os.path.dirname(__file__), "sample_files")
@@ -62,7 +62,6 @@ def main():
 
     workspace_name = f"费用报销_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
     workspace = client.workspace.create(
-        enterprise_id=enterprise_id,
         name=workspace_name,
         auth_scope=1,  # 1=公开, 0=私有
         description="费用报销单据自动化处理空间"

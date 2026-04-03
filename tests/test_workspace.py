@@ -12,35 +12,33 @@ def test_create_workspace_validation(client):
     """测试创建工作空间参数校验"""
     # 测试空名称
     with pytest.raises(ValidationError, match="工作空间名称不能为空"):
-        client.workspace.create(enterprise_id=12345, name="", auth_scope=0)
+        client.workspace.create(name="", auth_scope=0)
 
     # 测试名称过长
     with pytest.raises(ValidationError, match="工作空间名称不能超过 50 个字符"):
-        client.workspace.create(enterprise_id=12345, name="a" * 51, auth_scope=0)
+        client.workspace.create(name="a" * 51, auth_scope=0)
 
     # 测试描述过长
     with pytest.raises(ValidationError, match="工作空间描述不能超过 200 个字符"):
-        client.workspace.create(enterprise_id=12345, name="测试", auth_scope=0, description="a" * 201)
+        client.workspace.create(name="测试", auth_scope=0, description="a" * 201)
 
     # 测试无效的 auth_scope
     with pytest.raises(ValidationError, match="auth_scope 只能是"):
-        client.workspace.create(
-            enterprise_id=12345, name="测试", auth_scope=999
-        )
+        client.workspace.create(name="测试", auth_scope=999)
 
 
 def test_list_workspace_validation(client):
     """测试列表工作空间参数校验"""
     # 测试无效的页码
     with pytest.raises(ValidationError, match="页码必须大于等于 1"):
-        client.workspace.list(enterprise_id=12345, page=0)
+        client.workspace.list(page=0)
 
     # 测试无效的每页数量
     with pytest.raises(ValidationError, match="每页数量必须在 1-100 之间"):
-        client.workspace.list(enterprise_id=12345, page_size=0)
+        client.workspace.list(page_size=0)
 
     with pytest.raises(ValidationError, match="每页数量必须在 1-100 之间"):
-        client.workspace.list(enterprise_id=12345, page_size=101)
+        client.workspace.list(page_size=101)
 
 
 def test_get_workspace_validation(client):
@@ -112,7 +110,6 @@ def test_workspace_create_success(client):
     # Mock HTTP 请求
     with patch.object(client.http_client, 'post', return_value=mock_response) as mock_post:
         result = client.workspace.create(
-            enterprise_id=12345,
             name="测试工作空间",
             auth_scope=AuthScope.PRIVATE
         )
@@ -124,7 +121,6 @@ def test_workspace_create_success(client):
         # 验证调用参数
         call_args = mock_post.call_args
         assert call_args[0][0] == "/app-api/sip/platform/v2/workspace/create"
-        assert call_args[1]['json_data']['enterprise_id'] == 12345
         assert call_args[1]['json_data']['name'] == "测试工作空间"
         assert call_args[1]['json_data']['auth_scope'] == 0
 
@@ -143,7 +139,6 @@ def test_workspace_create_with_optional_params(client):
     # Mock HTTP 请求
     with patch.object(client.http_client, 'post', return_value=mock_response) as mock_post:
         result = client.workspace.create(
-            enterprise_id=12345,
             name="公开工作空间",
             auth_scope=AuthScope.PUBLIC,
             manage_account_id=100
@@ -192,7 +187,6 @@ def test_workspace_list_success(client):
     # Mock HTTP 请求
     with patch.object(client.http_client, 'get', return_value=mock_response):
         result = client.workspace.list(
-            enterprise_id=12345,
             page=1,
             page_size=20
         )
@@ -231,7 +225,6 @@ def test_workspace_list_with_pagination(client):
     # Mock HTTP 请求
     with patch.object(client.http_client, 'get', return_value=mock_response) as mock_get:
         result = client.workspace.list(
-            enterprise_id=12345,
             page=2,
             page_size=10
         )
@@ -265,7 +258,7 @@ def test_workspace_list_empty_result(client):
 
     # Mock HTTP 请求
     with patch.object(client.http_client, 'get', return_value=mock_response):
-        result = client.workspace.list(enterprise_id=12345)
+        result = client.workspace.list()
 
         # 验证返回结果
         assert result.total == 0
@@ -507,7 +500,6 @@ def test_workspace_iter_success(client):
         side_effect=[mock_response_page1, mock_response_page2, mock_response_page3]
     ):
         workspaces = list(client.workspace.iter(
-            enterprise_id=12345,
             page_size=10
         ))
 
@@ -540,7 +532,6 @@ def test_workspace_iter_with_max_pages(client):
     # Mock HTTP 请求
     with patch.object(client.http_client, 'get', return_value=mock_response):
         workspaces = list(client.workspace.iter(
-            enterprise_id=12345,
             page_size=10,
             max_pages=2
         ))
@@ -565,10 +556,74 @@ def test_workspace_iter_empty_result(client):
 
     # Mock HTTP 请求
     with patch.object(client.http_client, 'get', return_value=mock_response):
-        workspaces = list(client.workspace.iter(enterprise_id=12345))
+        workspaces = list(client.workspace.iter())
 
         # 验证返回结果
         assert len(workspaces) == 0
+
+
+def test_enterprise_id_in_header():
+    """测试 enterprise_id 正确添加到请求头"""
+    from docflow import DocflowClient
+
+    # 通过初始化参数设置 enterprise_id
+    client = DocflowClient(
+        app_id="test-app-id",
+        secret_code="test-secret",
+        enterprise_id="12345"
+    )
+
+    # 验证 headers 中包含 x-ti-enterprise-id
+    headers = client.http_client._build_headers()
+    assert 'x-ti-enterprise-id' in headers
+    assert headers['x-ti-enterprise-id'] == "12345"
+
+
+def test_enterprise_id_optional():
+    """测试 enterprise_id 是可选的"""
+    from docflow import DocflowClient
+
+    # 不设置 enterprise_id
+    client = DocflowClient(
+        app_id="test-app-id",
+        secret_code="test-secret"
+    )
+
+    # 验证 headers 中没有 x-ti-enterprise-id
+    headers = client.http_client._build_headers()
+    assert 'x-ti-enterprise-id' not in headers
+
+
+def test_enterprise_id_not_in_request_body():
+    """测试 enterprise_id 不在请求体中"""
+    from docflow import DocflowClient
+
+    client = DocflowClient(
+        app_id="test-app-id",
+        secret_code="test-secret",
+        enterprise_id="12345"
+    )
+
+    # Mock 响应
+    mock_response = {
+        "code": 200,
+        "msg": "success",
+        "result": {"workspace_id": "123456"}
+    }
+
+    # 捕获请求
+    with patch.object(client.http_client, 'post', return_value=mock_response) as mock_post:
+        client.workspace.create(name="测试", auth_scope=1)
+
+        # 验证调用参数
+        call_kwargs = mock_post.call_args[1]
+        json_data = call_kwargs.get('json_data', {})
+
+        # enterprise_id 不应该在请求体中
+        assert 'enterprise_id' not in json_data
+        # 但应该包含 name 和 auth_scope
+        assert json_data['name'] == "测试"
+        assert json_data['auth_scope'] == 1
 
 
 if __name__ == "__main__":

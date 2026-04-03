@@ -61,7 +61,8 @@ from docflow import DocflowClient, AuthScope  # 导入枚举类型
 # 方式 1: 最简洁（使用默认 base_url）
 client = DocflowClient(
     app_id="your-app-id",
-    secret_code="your-secret-code"
+    secret_code="your-secret-code",
+    enterprise_id="12345"  # 可选，用于工作空间操作
     # base_url 默认为 "https://docflow.textin.com"
 )
 
@@ -71,12 +72,14 @@ client = DocflowClient.from_env()
 # export DOCFLOW_APP_ID="your-app-id"
 # export DOCFLOW_SECRET_CODE="your-secret-code"
 # export DOCFLOW_BASE_URL="https://docflow.textin.com"  # 可选
+# export DOCFLOW_ENTERPRISE_ID="12345"  # 可选，用于工作空间操作
 
 # 方式 3: 自定义 base_url
 client = DocflowClient(
     app_id="your-app-id",
     secret_code="your-secret-code",
-    base_url="https://custom.api.com"
+    base_url="https://custom.api.com",
+    enterprise_id="12345"  # 可选
 )
 ```
 
@@ -87,7 +90,6 @@ client = DocflowClient(
 ```python
 # 使用 AuthScope 枚举避免参数传错
 workspace = client.workspace.create(
-    enterprise_id=12345,
     name="我的工作空间",
     auth_scope=AuthScope.PUBLIC  # 使用枚举而非数字1
 )
@@ -98,7 +100,6 @@ print(f"创建的工作空间ID: {workspace.workspace_id}")
 
 ```python
 workspaces = client.workspace.list(
-    enterprise_id=12345,
     page=1,
     page_size=20
 )
@@ -291,7 +292,7 @@ cat.samples.upload(file="sample.pdf")  # 上传样本
 all_workspaces = []
 page = 1
 while True:
-    response = client.workspace.list(enterprise_id=12345, page=page, page_size=100)
+    response = client.workspace.list(page=page, page_size=100)
     all_workspaces.extend(response.workspaces)
     if page >= response.total // response.page_size + 1:
         break
@@ -299,16 +300,16 @@ while True:
 
 # 迭代器方式（自动分页）
 # 方式 1: 直接遍历（内存高效，支持随时中断）
-for workspace in client.workspace.iter(enterprise_id=12345):
+for workspace in client.workspace.iter():
     print(f"{workspace.workspace_id}: {workspace.name}")
     if some_condition:
         break  # 可以随时中断
 
 # 方式 2: 转换为列表（获取所有数据）
-all_workspaces = list(client.workspace.iter(enterprise_id=12345))
+all_workspaces = list(client.workspace.iter())
 
 # 方式 3: 限制最大页数（防止数据过大）
-for workspace in client.workspace.iter(enterprise_id=12345, max_pages=5):
+for workspace in client.workspace.iter(max_pages=5):
     print(workspace.name)
 
 # 类别迭代器
@@ -381,7 +382,6 @@ client = DocflowClient.from_env()
 
 # 使用枚举创建工作空间
 workspace = client.workspace.create(
-    enterprise_id=12345,
     name="我的工作空间",
     auth_scope=AuthScope.PUBLIC  # ✅ 类型安全
 )
@@ -483,9 +483,10 @@ except APIError as e:
 ```python
 with DocflowClient(
     app_id="your-app-id",
-    secret_code="your-secret-code"
+    secret_code="your-secret-code",
+    enterprise_id="12345"
 ) as client:
-    workspaces = client.workspace.list(enterprise_id=12345)
+    workspaces = client.workspace.list()
     # 自动关闭连接
 ```
 
@@ -500,6 +501,7 @@ with DocflowClient(
 - `base_url` (str): API 基础地址
 - `app_id` (str): 应用ID（对应请求头 x-ti-app-id）
 - `secret_code` (str): 密钥（对应请求头 x-ti-secret-code）
+- `enterprise_id` (str, 可选): 企业ID（对应请求头 x-ti-enterprise-id），用于工作空间操作
 - `timeout` (int, 可选): 请求超时时间（秒），默认 30
 - `max_retries` (int, 可选): 最大重试次数，默认 3
 
@@ -518,12 +520,13 @@ with DocflowClient(
 
 创建工作空间
 
+**注意：** 企业ID通过请求头 `x-ti-enterprise-id` 传递，需要在初始化客户端时配置。
+
 ```python
 def create(
-    enterprise_id: int,
     name: str,
-    auth_scope: Optional[int] = None,
-    manage_account_id: Optional[int] = None,
+    auth_scope: Union[AuthScope, int],
+    description: Optional[str] = None,
     **kwargs
 ) -> WorkspaceCreateResponse
 ```
@@ -532,9 +535,10 @@ def create(
 
 获取工作空间列表
 
+**注意：** 企业ID通过请求头 `x-ti-enterprise-id` 传递，需要在初始化客户端时配置。
+
 ```python
 def list(
-    enterprise_id: int,
     page: int = 1,
     page_size: int = 20
 ) -> WorkspaceListResponse

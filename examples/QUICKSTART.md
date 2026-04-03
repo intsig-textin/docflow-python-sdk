@@ -210,7 +210,6 @@ client = DocflowClient.from_env()
 
 ```python
 workspace = client.workspace.create(
-    enterprise_id=12345,
     name="费用报销",
     auth_scope=1,  # 1=公开, 0=私有
     description="费用报销单据自动化处理空间"
