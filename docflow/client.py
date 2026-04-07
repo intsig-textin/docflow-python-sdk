@@ -78,7 +78,7 @@ class DocflowClient:
             >>> # 设置环境变量
             >>> # export DOCFLOW_APP_ID="your-app-id"
             >>> # export DOCFLOW_SECRET_CODE="your-secret-code"
-            >>> # export DOCFLOW_BASE_URL="https://docflow.textin.com"  # 可选
+            >>> # export DOCFLOW_BASE_URL="https://docflow.textin.com/api"  # 可选
             >>> # export DOCFLOW_ENTERPRISE_ID="12345"  # 可选
             >>>
             >>> # 从环境变量创建客户端
@@ -131,11 +131,10 @@ class DocflowClient:
         Args:
             app_id: 应用ID（对应请求头 x-ti-app-id）
             secret_code: 密钥（对应请求头 x-ti-secret-code）
-            base_url: API 基础地址，默认 "https://docflow.textin.com"
+            base_url: API 基础地址，默认 "https://docflow.textin.com/api"
             timeout: 请求超时时间（秒），默认 30 秒
             max_retries: 最大重试次数，默认 3 次
             language: 错误消息语言，支持 'zh_CN'（中文）、'en_US'（英文），默认 'zh_CN'
-            enterprise_id: 企业ID（可选，会自动添加到请求头 x-ti-enterprise-id）
             retry_status_codes: 需要重试的HTTP状态码列表，默认 [423, 429, 500, 503, 504, 900]
             retry_methods: 允许重试的HTTP方法列表，默认 ["GET", "POST", "PUT", "DELETE"]
             retry_backoff_factor: 重试间隔计算因子，默认 1.0

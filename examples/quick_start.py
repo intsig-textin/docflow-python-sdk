@@ -14,8 +14,7 @@ DocFlow SDK 快速开始 - 费用报销场景
 1. 设置环境变量：
    export DOCFLOW_APP_ID="your-app-id"
    export DOCFLOW_SECRET_CODE="your-secret-code"
-   export DOCFLOW_BASE_URL="https://docflow.textin.com"
-   export DOCFLOW_ENTERPRISE_ID="your-enterprise-id"
+   export DOCFLOW_BASE_URL="https://docflow.textin.com/api"
 
 2. 准备样本文件（放在 sample_files 目录下）：
 （下述文件可api文档中获取 https://docs-docflow.textin.com/docflow/cn/00-overview/expense_reimbursement）
@@ -51,7 +50,6 @@ def main():
     print_section("DocFlow SDK 快速开始 - 费用报销场景")
 
     # 初始化客户端（从环境变量自动加载配置）
-    # 注意：DOCFLOW_ENTERPRISE_ID 会自动从环境变量加载到请求头
     client = DocflowClient.from_env()
 
     # 样本文件目录
@@ -557,7 +555,7 @@ def main():
 
     print("后续操作：")
     print(f"1. 访问 DocFlow Web 页面查看详细结果")
-    print(f"   https://docflow.textin.com/")
+    print(f"   https://docflow.textin.com/api")
     print(f"2. 工作空间ID: {workspace_id}")
     print(f"3. 规则库ID: {repo_id}")
     print(f"4. 审核任务ID: {review_task_id}")

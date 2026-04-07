@@ -20,17 +20,12 @@
 
 | 文件 | 说明 | 包含示例数量 |
 |------|------|--------------|
+| [quick_start.py](quick_start.py) | 文件处理流程快速启动示例 | 1个 |
+| [review_examples.py](review_examples.py) | 审核规则资源完整示例 | 22个 |
+| [complete_workflow_example.py](complete_workflow_example.py) | 端到端业务流程示例 | 3个场景 |
 | [file_examples.py](file_examples.py) | 文件处理资源完整示例 | 17个 |
 | [review_examples.py](review_examples.py) | 审核规则资源完整示例 | 22个 |
 | [complete_workflow_example.py](complete_workflow_example.py) | 端到端业务流程示例 | 3个场景 |
-
-### 其他示例
-
-其他示例文件可以在项目根目录的 `examples/` 找到,包括:
-- `workspace_example.py` - 工作空间管理示例
-- `category_example.py` - 类别管理示例
-- `retry_example.py` - 重试机制示例
-- `i18n_example.py` - 国际化示例
 
 ## 🚀 快速开始
 
@@ -41,7 +36,7 @@
 ```bash
 export DOCFLOW_APP_ID="your-app-id"
 export DOCFLOW_SECRET_CODE="your-secret-code"
-export DOCFLOW_BASE_URL="https://docflow.textin.com"
+export DOCFLOW_BASE_URL="https://docflow.textin.com/api"
 ```
 
 或者创建 `.env` 文件:
@@ -49,7 +44,7 @@ export DOCFLOW_BASE_URL="https://docflow.textin.com"
 ```ini
 DOCFLOW_APP_ID=your-app-id
 DOCFLOW_SECRET_CODE=your-secret-code
-DOCFLOW_BASE_URL=https://docflow.textin.com
+DOCFLOW_BASE_URL=https://docflow.textin.com/api
 ```
 
 ### 2. 安装依赖
@@ -61,6 +56,9 @@ pip install -e .
 ### 3. 运行示例
 
 ```bash
+# 运行快速启动示例
+python examples/quick_start.py
+
 # 运行文件处理示例
 python examples/file_examples.py
 
@@ -72,6 +70,10 @@ python examples/complete_workflow_example.py
 ```
 
 ## 📖 示例详解
+
+### 快速启动示例 (quick_start.py)
+
+费用报销场景快速开始指南，参考 [快速启动指南](QUICKSTART.md)
 
 ### 文件处理示例 (file_examples.py)
 
@@ -242,12 +244,6 @@ updates = [
 ]
 client.file.batch_update(updates=updates)
 ```
-
-## 📚 更多资源
-
-- [主文档](../README.md)
-- [API 参考](../docs/)
-- [GitHub Issues](https://github.com/intsig-textin/docflow-python-sdk/issues)
 
 ## 🤝 贡献
 

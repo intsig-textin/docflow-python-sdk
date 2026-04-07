@@ -24,7 +24,7 @@ def reset_language():
 def test_default_language(test_app_id, test_secret_code):
     """测试默认语言是中文"""
     client = DocflowClient(
-        base_url="https://docflow.textin.com",
+        base_url="https://docflow.textin.com/api",
         app_id=test_app_id,
         secret_code=test_secret_code
     )
@@ -36,7 +36,7 @@ def test_set_language_on_init(test_app_id, test_secret_code):
     """测试初始化时设置语言"""
     # 测试中文
     client_cn = DocflowClient(
-        base_url="https://docflow.textin.com",
+        base_url="https://docflow.textin.com/api",
         app_id=test_app_id,
         secret_code=test_secret_code,
         language='zh_CN'
@@ -46,7 +46,7 @@ def test_set_language_on_init(test_app_id, test_secret_code):
 
     # 测试英文
     client_en = DocflowClient(
-        base_url="https://docflow.textin.com",
+        base_url="https://docflow.textin.com/api",
         app_id=test_app_id,
         secret_code=test_secret_code,
         language='en_US'

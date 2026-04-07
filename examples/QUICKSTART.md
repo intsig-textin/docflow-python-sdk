@@ -29,8 +29,6 @@ pip install docflow-sdk
 
 - `x-ti-app-id`
 - `x-ti-secret-code`
-- 企业组织 ID（在控制台「企业管理」中查看）
-
 ### 3. 准备样本文件
 
 下载示例样本文件或使用您自己的报销单据，放置在 `sample_files/` 目录下：
@@ -49,8 +47,7 @@ sample_files/
 ```bash
 export DOCFLOW_APP_ID="your-app-id"
 export DOCFLOW_SECRET_CODE="your-secret-code"
-export DOCFLOW_BASE_URL="https://docflow.textin.com"
-export DOCFLOW_ENTERPRISE_ID="your-enterprise-id"
+export DOCFLOW_BASE_URL="https://docflow.textin.com/api"
 ```
 
 或创建 `.env` 文件：
@@ -58,15 +55,14 @@ export DOCFLOW_ENTERPRISE_ID="your-enterprise-id"
 ```ini
 DOCFLOW_APP_ID=your-app-id
 DOCFLOW_SECRET_CODE=your-secret-code
-DOCFLOW_BASE_URL=https://docflow.textin.com
-DOCFLOW_ENTERPRISE_ID=12345
+DOCFLOW_BASE_URL=https://docflow.textin.com/api
 ```
 
 ## 🚀 运行示例
 
 ```bash
 cd examples
-python quickstart_expense_reimbursement.py
+python quick_start.py
 ```
 
 ## 📊 示例输出
@@ -187,7 +183,7 @@ python quickstart_expense_reimbursement.py
 ======================================================================
 后续操作：
 1. 访问 DocFlow Web 页面查看详细结果
-   https://docflow.textin.com/
+   https://docflow.textin.com/api
 2. 工作空间ID: 123456
 3. 规则库ID: 456789
 4. 审核任务ID: 987654
@@ -346,8 +342,8 @@ print(f"规则通过数: {review_result['statistics']['pass_count']}")
 
 ## 📚 下一步
 
-- 📖 查看 [完整 API 文档](README.md)
-- 💻 浏览 [更多示例](examples/README.md)
+- 📖 查看 [主文档](/README.md)
+- 💻 浏览 [更多示例](README.md)
 - 🌐 访问 [DocFlow Web 页面](https://docflow.textin.com/)
 
 ## ⚠️ 注意事项
@@ -356,20 +352,6 @@ print(f"规则通过数: {review_result['statistics']['pass_count']}")
 2. **异步处理**：文件上传和审核任务都是异步的，需要轮询等待结果
 3. **样本文件**：创建类别时至少需要一个样本文件
 4. **审核规则**：跨文档规则需要关联多个类别ID
-
-## 🐛 常见问题
-
-### Q: 文件处理一直在等待？
-
-A: 检查文件格式是否支持，可以先在 Web 页面测试上传。
-
-### Q: 审核规则没有触发？
-
-A: 检查 `category_ids` 是否正确，跨文档规则需要所有关联类别都有文件。
-
-### Q: 如何查看详细的抽取坐标？
-
-A: 在 `file.fetch()` 时设置 `with_document=True` 获取完整坐标信息。
 
 ## 📄 许可证
 

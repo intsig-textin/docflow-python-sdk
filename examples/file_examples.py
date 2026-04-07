@@ -510,7 +510,7 @@ if __name__ == "__main__":
     运行示例前,请设置环境变量:
     export DOCFLOW_APP_ID="your-app-id"
     export DOCFLOW_SECRET_CODE="your-secret-code"
-    export DOCFLOW_BASE_URL="https://docflow.textin.com"
+    export DOCFLOW_BASE_URL="https://docflow.textin.com/api"
     """
 
     print("=" * 60)

@@ -61,9 +61,8 @@ from docflow import DocflowClient, AuthScope  # 导入枚举类型
 # 方式 1: 最简洁（使用默认 base_url）
 client = DocflowClient(
     app_id="your-app-id",
-    secret_code="your-secret-code",
-    enterprise_id="12345"  # 可选，用于工作空间操作
-    # base_url 默认为 "https://docflow.textin.com"
+    secret_code="your-secret-code"
+    # base_url 默认为 "https://docflow.textin.com/api"
 )
 
 # 方式 2: 从环境变量加载
@@ -71,15 +70,13 @@ client = DocflowClient.from_env()
 # 需要设置环境变量：
 # export DOCFLOW_APP_ID="your-app-id"
 # export DOCFLOW_SECRET_CODE="your-secret-code"
-# export DOCFLOW_BASE_URL="https://docflow.textin.com"  # 可选
-# export DOCFLOW_ENTERPRISE_ID="12345"  # 可选，用于工作空间操作
+# export DOCFLOW_BASE_URL="https://docflow.textin.com/api"  # 可选
 
 # 方式 3: 自定义 base_url
 client = DocflowClient(
     app_id="your-app-id",
     secret_code="your-secret-code",
-    base_url="https://custom.api.com",
-    enterprise_id="12345"  # 可选
+    base_url="https://custom.api.com"
 )
 ```
 
@@ -483,8 +480,7 @@ except APIError as e:
 ```python
 with DocflowClient(
     app_id="your-app-id",
-    secret_code="your-secret-code",
-    enterprise_id="12345"
+    secret_code="your-secret-code"
 ) as client:
     workspaces = client.workspace.list()
     # 自动关闭连接
@@ -501,7 +497,6 @@ with DocflowClient(
 - `base_url` (str): API 基础地址
 - `app_id` (str): 应用ID（对应请求头 x-ti-app-id）
 - `secret_code` (str): 密钥（对应请求头 x-ti-secret-code）
-- `enterprise_id` (str, 可选): 企业ID（对应请求头 x-ti-enterprise-id），用于工作空间操作
 - `timeout` (int, 可选): 请求超时时间（秒），默认 30
 - `max_retries` (int, 可选): 最大重试次数，默认 3
 
@@ -520,7 +515,6 @@ with DocflowClient(
 
 创建工作空间
 
-**注意：** 企业ID通过请求头 `x-ti-enterprise-id` 传递，需要在初始化客户端时配置。
 
 ```python
 def create(
@@ -535,7 +529,6 @@ def create(
 
 获取工作空间列表
 
-**注意：** 企业ID通过请求头 `x-ti-enterprise-id` 传递，需要在初始化客户端时配置。
 
 ```python
 def list(
@@ -583,7 +576,6 @@ def delete(workspace_ids: List[str]) -> None
 export DOCFLOW_BASE_URL="https://docflow.textin.com/api"
 export DOCFLOW_APP_ID="your-app-id"
 export DOCFLOW_SECRET_CODE="your-secret-code"
-export DOCFLOW_ENTERPRISE_ID="12345"
 ```
 
 ### 使用 .env 文件
@@ -591,10 +583,9 @@ export DOCFLOW_ENTERPRISE_ID="12345"
 创建 `.env` 文件：
 
 ```env
-DOCFLOW_BASE_URL=https://docflow.textin.com
+DOCFLOW_BASE_URL=https://docflow.textin.com/api
 DOCFLOW_APP_ID=your-app-id
 DOCFLOW_SECRET_CODE=your-secret-code
-DOCFLOW_ENTERPRISE_ID=12345
 ```
 
 在代码中加载：
@@ -724,7 +715,7 @@ from docflow import DocflowClient
 
 # 默认配置
 client = DocflowClient(
-    base_url="https://docflow.textin.com",
+    base_url="https://docflow.textin.com/api",
     app_id="your-app-id",
     secret_code="your-secret-code"
 )
@@ -795,10 +786,9 @@ print(f"退避因子: {client.config.retry_backoff_factor}")
 
 ```bash
 # 设置环境变量
-export DOCFLOW_BASE_URL="https://docflow.textin.com"
+export DOCFLOW_BASE_URL="https://docflow.textin.com/api"
 export DOCFLOW_APP_ID="your-app-id"
 export DOCFLOW_SECRET_CODE="your-secret-code"
-export DOCFLOW_ENTERPRISE_ID="12345"
 
 # 运行快速开始示例（费用报销场景）
 python examples/quick_start.py
