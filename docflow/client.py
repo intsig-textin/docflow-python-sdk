@@ -40,7 +40,7 @@ class DocflowClient:
         >>> client = DocflowClient(
         ...     app_id="your-app-id",
         ...     secret_code="your-secret-code",
-        ...     base_url="https://custom.api.com"
+        ...     base_url="https://custom.api.com/api"
         ... )
 
         >>> workspace = client.workspace.create(

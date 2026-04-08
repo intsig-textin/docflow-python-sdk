@@ -44,7 +44,7 @@ TRANSLATIONS = {
 
     # Category related
     'error.category.name_invalid': 'Category name cannot be empty and must not exceed 50 characters',
-    'error.category.extract_model_invalid': 'extract_model must be ExtractModel.LLM(\'llm\') or ExtractModel.VLM(\'vlm\')',
+    'error.category.extract_model_invalid': 'extract_model must be ExtractModel.Model_1(\'Model 1\') or ExtractModel.Model_2(\'Model 2\') or ExtractModel.Model_3(\'Model 3\')',
     'error.category.sample_files_empty': 'At least one sample file is required',
     'error.category.fields_empty': 'At least one field configuration is required',
     'error.category.prompt_too_long': 'Category prompt must not exceed 150 characters',

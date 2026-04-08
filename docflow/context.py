@@ -82,8 +82,8 @@ class CategoryContext:
         self,
         name: Optional[str] = None,
         category_prompt: Optional[str] = None,
-        description: Optional[str] = None,
         enabled: Optional[Union[EnabledFlag, int]] = None,
+        extract_model: Optional[Union[ExtractModel, str]] = None,
         **kwargs,
     ) -> None:
         """
@@ -92,8 +92,8 @@ class CategoryContext:
         Args:
             name: 新的类别名称（可选）
             category_prompt: 新的类别提示（可选）
-            description: 新的描述（可选）
             enabled: 启用状态（EnabledFlag.DISABLED=0 或 EnabledFlag.ENABLED=1，可选）
+            extract_model: 提取模型（ExtractModel.Model_1/Model_2/Model_3，可选）
             **kwargs: 其他要更新的字段
         """
         return self._category_resource.update(
@@ -101,8 +101,8 @@ class CategoryContext:
             category_id=self.category_id,
             name=name,
             category_prompt=category_prompt,
-            description=description,
             enabled=enabled,
+            extract_model=extract_model,
             **kwargs,
         )
 
@@ -201,22 +201,23 @@ class CategoryTableContext:
         )
 
     def add(
-        self, name: str, description: Optional[str] = None, **kwargs
+        self, name: str, prompt: Optional[str] = None, **kwargs
     ):
         """新增表格"""
         return self._table_resource.add(
             workspace_id=self.workspace_id,
             category_id=self.category_id,
             name=name,
-            description=description,
+            prompt=prompt,
             **kwargs,
         )
 
     def update(
         self,
         table_id: str,
+        collect_from_multi_table: bool,
         name: Optional[str] = None,
-        description: Optional[str] = None,
+        prompt: Optional[str] = None,
         **kwargs,
     ) -> None:
         """更新表格"""
@@ -224,8 +225,9 @@ class CategoryTableContext:
             workspace_id=self.workspace_id,
             category_id=self.category_id,
             table_id=table_id,
+            collect_from_multi_table=collect_from_multi_table,
             name=name,
-            description=description,
+            prompt=prompt,
             **kwargs,
         )
 
@@ -443,56 +445,71 @@ class ReviewContext:
 
     def create_rule(
         self,
-        group_id: str,
-        name: str,
-        rule_type: str,
-        config: Dict[str, Any],
-        **kwargs
+        repo_id: int,
+        group_id: Optional[str] = None,
+        name: Optional[str] = None,
+        prompt: Optional[str] = None,
+        category_ids: Optional[List[str]] = None,
+        risk_level: Optional[int] = None,
+        referenced_fields: Optional[List[Dict[str, Any]]] = None,
     ) -> "ReviewRuleCreateResponse":
         """
         创建审核规则
 
         Args:
-            group_id: 规则组 ID
-            name: 规则名称
-            rule_type: 规则类型
-            config: 规则配置
-            **kwargs: 其他参数
+            repo_id: 审核规则库ID
+            group_id: 规则组 ID（可选）
+            name: 规则名称（可选）
+            prompt: 规则提示词（可选）
+            category_ids: 分类ID列表（可选）
+            risk_level: 风险等级，10:高风险，20:中风险，30:低风险（可选）
+            referenced_fields: 引用字段列表（可选）
 
         Returns:
             ReviewRuleCreateResponse: 包含新创建的规则信息
         """
         return self._review_resource.create_rule(
             workspace_id=self.workspace_id,
+            repo_id=repo_id,
             group_id=group_id,
             name=name,
-            rule_type=rule_type,
-            config=config,
-            **kwargs
+            prompt=prompt,
+            category_ids=category_ids,
+            risk_level=risk_level,
+            referenced_fields=referenced_fields,
         )
 
     def update_rule(
         self,
         rule_id: str,
+        group_id: Optional[str] = None,
         name: Optional[str] = None,
-        config: Optional[Dict[str, Any]] = None,
-        **kwargs
+        prompt: Optional[str] = None,
+        category_ids: Optional[List[str]] = None,
+        risk_level: Optional[int] = None,
+        referenced_fields: Optional[List[Dict[str, Any]]] = None,
     ) -> None:
         """
         更新审核规则
 
         Args:
             rule_id: 规则 ID
+            group_id: 规则组ID（可选）
             name: 新的规则名称（可选）
-            config: 新的规则配置（可选）
-            **kwargs: 其他要更新的字段
+            prompt: 规则提示词（可选）
+            category_ids: 分类ID列表（可选）
+            risk_level: 风险等级（可选）
+            referenced_fields: 引用字段列表（可选）
         """
         return self._review_resource.update_rule(
             workspace_id=self.workspace_id,
             rule_id=rule_id,
+            group_id=group_id,
             name=name,
-            config=config,
-            **kwargs
+            prompt=prompt,
+            category_ids=category_ids,
+            risk_level=risk_level,
+            referenced_fields=referenced_fields,
         )
 
     def delete_rule(self, rule_id: str) -> None:
@@ -520,7 +537,7 @@ class WorkspaceContext:
         >>> detail = ws.get()
         >>>
         >>> # 更新工作空间
-        >>> ws.update(name="新名称")
+        >>> ws.update(name="新名称", auth_scope=AuthScope.PUBLIC)
         >>>
         >>> # 类别操作（链式调用）
         >>> cat = ws.category("456")
@@ -532,7 +549,12 @@ class WorkspaceContext:
         >>> # 审核规则操作（链式调用）
         >>> repo = ws.review.create_repo(name="发票审核规则库")
         >>> group = ws.review.create_group(repo_id=repo.repo_id, name="金额验证")
-        >>> rule = ws.review.create_rule(group_id=group.group_id, name="金额范围", rule_type="range", config={})
+        >>> rule = ws.review.create_rule(
+        ...     repo_id=int(repo.repo_id),
+        ...     group_id=group.group_id,
+        ...     name="金额范围检查",
+        ...     prompt="检查金额是否在合理范围内"
+        ... )
     """
 
     def __init__(
@@ -571,20 +593,32 @@ class WorkspaceContext:
 
     def update(
         self,
-        name: Optional[str] = None,
-        auth_scope: Optional[Union[AuthScope, int]] = None,
+        name: str,
+        auth_scope: Union[AuthScope, int],
+        description: Optional[str] = None,
+        callback_url: Optional[str] = None,
+        callback_retry_time: Optional[int] = None,
         **kwargs,
     ) -> None:
         """
         更新工作空间
 
         Args:
-            name: 新的工作空间名称（可选）
-            auth_scope: 新的权限范围（AuthScope.PRIVATE=0 或 AuthScope.PUBLIC=1，可选）
+            name: 新的工作空间名称（必填）
+            auth_scope: 新的权限范围（AuthScope.PRIVATE=0 或 AuthScope.PUBLIC=1，必填）
+            description: 空间描述（可选）
+            callback_url: 回调URL（可选）
+            callback_retry_time: 回调重试次数（可选，范围 1-3）
             **kwargs: 其他要更新的字段
         """
         return self._workspace_resource.update(
-            workspace_id=self.workspace_id, name=name, auth_scope=auth_scope, **kwargs
+            workspace_id=self.workspace_id,
+            name=name,
+            auth_scope=auth_scope,
+            description=description,
+            callback_url=callback_url,
+            callback_retry_time=callback_retry_time,
+            **kwargs
         )
 
     def delete(self) -> None:
@@ -637,21 +671,17 @@ class WorkspaceContext:
         extract_model: Union[ExtractModel, str],
         sample_files: List[Union[str, BinaryIO]],
         fields: List[Dict[str, Any]],
-        tables: Optional[List[Dict[str, Any]]] = None,
         category_prompt: Optional[str] = None,
-        description: Optional[str] = None,
     ):
         """
         在当前工作空间创建类别
 
         Args:
             name: 类别名称
-            extract_model: 提取模型（ExtractModel.LLM 或 ExtractModel.VLM）
+            extract_model: 提取模型（ExtractModel.Model_1 或 ExtractModel.Model_2 或 ExtractModel.Model_3）
             sample_files: 样本文件列表
             fields: 字段配置列表
-            tables: 表格配置列表（可选）
             category_prompt: 类别提示（可选）
-            description: 类别描述（可选）
 
         Returns:
             CategoryCreateResponse: 包含新创建的类别 ID
@@ -662,7 +692,5 @@ class WorkspaceContext:
             extract_model=extract_model,
             sample_files=sample_files,
             fields=fields,
-            tables=tables,
             category_prompt=category_prompt,
-            description=description,
         )

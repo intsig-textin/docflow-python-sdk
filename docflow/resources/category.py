@@ -217,7 +217,7 @@ class CategoryResource(BaseResource):
             ...     enabled=EnabledStatus.ENABLED
             ... )
             >>> for cat in categories.categories:
-            ...     print(f"{cat.category_id}: {cat.name}")
+            ...     print(f"{cat.id}: {cat.name}")
 
             >>> # 获取全部类别（包括未启用）
             >>> all_categories = client.category.list(
@@ -499,7 +499,7 @@ class CategoryTableResource(BaseResource):
             ...     category_id="456"
             ... )
             >>> for table in tables.tables:
-            ...     print(f"{table.table_id}: {table.name}")
+            ...     print(f"{table.id}: {table.name}")
         """
         # 参数校验
         self._validate_workspace_id(workspace_id)

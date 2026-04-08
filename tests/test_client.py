@@ -24,9 +24,9 @@ def test_client_init_with_custom_url(test_app_id, test_secret_code):
     client = DocflowClient(
         app_id=test_app_id,
         secret_code=test_secret_code,
-        base_url="https://custom.api.com"
+        base_url="https://custom.api.com/api"
     )
-    assert client.config.base_url == "https://custom.api.com"
+    assert client.config.base_url == "https://custom.api.com/api"
     client.close()
 
 

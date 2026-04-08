@@ -45,7 +45,7 @@ TRANSLATIONS = {
 
     # 类别相关
     'error.category.name_invalid': '类别名称不能为空且最大长度为 50 字符',
-    'error.category.extract_model_invalid': 'extract_model 必须是 ExtractModel.LLM(\'llm\') 或 ExtractModel.VLM(\'vlm\')',
+    'error.category.extract_model_invalid': 'extract_model 必须是 ExtractModel.Model_1(\'Model 1\') 或 ExtractModel.Model_2(\'Model 2\') 或 ExtractModel.Model_3(\'Model 3\')',
     'error.category.sample_files_empty': '至少需要提供一个样本文件',
     'error.category.fields_empty': '至少需要提供一个字段配置',
     'error.category.prompt_too_long': '类别提示最大长度为 150 字符',

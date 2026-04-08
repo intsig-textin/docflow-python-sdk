@@ -59,7 +59,7 @@ class WorkspaceResource(BaseResource):
             >>> detail = ws.get()
             >>>
             >>> # 更新工作空间
-            >>> ws.update(name="新名称")
+            >>> ws.update(name="新名称", auth_scope=AuthScope.PUBLIC)
             >>>
             >>> # 链式调用：操作类别
             >>> cat = ws.category("456")

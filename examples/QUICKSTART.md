@@ -8,7 +8,7 @@
 
 - **报销申请单**（XLS 格式）- 记录申请人、出差目的、费用明细
 - **酒店水单**（图片）- 记录入住日期、离店日期及消费明细
-- **支付记录**（PDF）- 记录交易流水号、交易金额、收付款方信息
+- **支付记录**（图片）- 记录交易流水号、交易金额、收付款方信息
 
 通过 DocFlow，您可以自动完成：
 1. ✅ 文档分类识别
@@ -56,6 +56,21 @@ export DOCFLOW_BASE_URL="https://docflow.textin.com/api"
 DOCFLOW_APP_ID=your-app-id
 DOCFLOW_SECRET_CODE=your-secret-code
 DOCFLOW_BASE_URL=https://docflow.textin.com/api
+```
+
+加载`.env` 配置：
+
+```python
+from dotenv import load_dotenv
+import os
+
+load_dotenv()
+
+client = DocflowClient(
+    base_url=os.getenv("DOCFLOW_BASE_URL"),
+    app_id=os.getenv("DOCFLOW_APP_ID"),
+    secret_code=os.getenv("DOCFLOW_SECRET_CODE")
+)
 ```
 
 ## 🚀 运行示例
@@ -195,11 +210,28 @@ python quick_start.py
 
 ### 初始化客户端
 
+
+
 ```python
 from docflow import DocflowClient
 
 # 从环境变量自动加载配置
 client = DocflowClient.from_env()
+```
+
+若使用.env文件方式配置环境变量，需要dotenv依赖：
+
+```python
+from dotenv import load_dotenv
+import os
+
+load_dotenv()
+
+client = DocflowClient(
+    base_url=os.getenv("DOCFLOW_BASE_URL"),
+    app_id=os.getenv("DOCFLOW_APP_ID"),
+    secret_code=os.getenv("DOCFLOW_SECRET_CODE")
+)
 ```
 
 ### 创建工作空间
