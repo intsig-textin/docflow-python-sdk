@@ -4,7 +4,7 @@ Docflow Python SDK
 Docflow Python SDK，提供简洁易用的 API 接口
 """
 
-__version__ = "1.0.0"
+__version__ = "1.0.3"
 
 from .client import DocflowClient
 from .exceptions import (

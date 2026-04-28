@@ -5,6 +5,21 @@
 格式基于 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)，
 版本号遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
+## [1.0.3] - 2026-04-28
+
+### Added
+
+- ✨ **审核模型选择** (`ReviewModel` 枚举)
+  - 新增 `ReviewModel` 枚举类型，支持选择审核模型
+    - `DEEPSEEK_R1 = "1"`: deepseek-r1
+    - `QWQ_32B = "2"`: qwq-32b
+    - `QWEN3_MAX = "3"`: qwen3-max
+    - `ORM_O1 = "5"`: ORM-O1
+  - `client.review.submit_task()` 新增可选参数 `model`，支持指定审核模型
+  - `client.review.get_task_result()` 新增可选参数 `model`，支持指定审核模型
+
+---
+
 ## [1.0.0] - 2026-03-17
 
 ### Added
