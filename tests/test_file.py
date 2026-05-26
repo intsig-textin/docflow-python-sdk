@@ -291,6 +291,59 @@ def test_file_upload_by_url_with_optional_params(client, mock_workspace_id):
         assert call_args[1]['params']['split_flag'] is False
 
 
+def test_file_upload_with_new_parser_params(client, mock_workspace_id):
+    """测试文件上传（带 parser_dpi、parser_parse_mode、parser_pdf_pwd）"""
+    mock_response = {
+        "code": 200,
+        "msg": "success",
+        "result": {
+            "batch_number": "batch_parser",
+            "files": [{"id": "file_001", "task_id": "task_001", "name": "test.pdf", "format": "pdf"}]
+        }
+    }
+
+    mock_file_data = b"fake file content"
+    with patch('builtins.open', mock_open(read_data=mock_file_data)):
+        with patch.object(client.http_client, 'post', return_value=mock_response) as mock_post:
+            client.file.upload(
+                workspace_id=mock_workspace_id,
+                file_path="/fake/path/test.pdf",
+                parser_dpi=216,
+                parser_parse_mode="scan",
+                parser_pdf_pwd="mypassword"
+            )
+
+            call_args = mock_post.call_args
+            assert call_args[1]['params']['parser_dpi'] == 216
+            assert call_args[1]['params']['parser_parse_mode'] == "scan"
+            assert call_args[1]['params']['parser_pdf_pwd'] == "mypassword"
+
+
+def test_file_upload_new_parser_params_none_not_sent(client, mock_workspace_id):
+    """测试 parser_dpi/parser_parse_mode/parser_pdf_pwd 为 None 时不传入请求"""
+    mock_response = {
+        "code": 200,
+        "msg": "success",
+        "result": {
+            "batch_number": "batch_no_parser",
+            "files": [{"id": "file_001", "task_id": "task_001", "name": "test.pdf", "format": "pdf"}]
+        }
+    }
+
+    mock_file_data = b"fake file content"
+    with patch('builtins.open', mock_open(read_data=mock_file_data)):
+        with patch.object(client.http_client, 'post', return_value=mock_response) as mock_post:
+            client.file.upload(
+                workspace_id=mock_workspace_id,
+                file_path="/fake/path/test.pdf"
+            )
+
+            call_args = mock_post.call_args
+            assert 'parser_dpi' not in call_args[1]['params']
+            assert 'parser_parse_mode' not in call_args[1]['params']
+            assert 'parser_pdf_pwd' not in call_args[1]['params']
+
+
 # ==================== upload_sync 测试 ====================
 
 def test_file_upload_sync_success(client, mock_workspace_id):
@@ -441,6 +494,34 @@ def test_file_upload_sync_by_url_with_optional_params(client, mock_workspace_id)
         assert call_args[1]['json_data']['urls'] == ["https://example.com/invoice.pdf"]
         assert call_args[1]['params']['batch_number'] == "batch_sync"
         assert call_args[1]['params']['with_task_detail_url'] is True
+
+
+def test_file_upload_sync_with_new_parser_params(client, mock_workspace_id):
+    """测试同步上传（带 parser_dpi、parser_parse_mode、parser_pdf_pwd）"""
+    mock_response = {
+        "code": 200,
+        "msg": "success",
+        "result": {
+            "total": 1, "page": 1, "page_size": 1000,
+            "files": [{"id": "file_001", "task_id": "task_001", "name": "test.pdf", "format": "pdf", "recognition_status": "success"}]
+        }
+    }
+
+    mock_file_data = b"fake file content"
+    with patch('builtins.open', mock_open(read_data=mock_file_data)):
+        with patch.object(client.http_client, 'post', return_value=mock_response) as mock_post:
+            client.file.upload_sync(
+                workspace_id=mock_workspace_id,
+                file_path="/fake/path/test.pdf",
+                parser_dpi=72,
+                parser_parse_mode="vlm",
+                parser_pdf_pwd="pwd123"
+            )
+
+            call_args = mock_post.call_args
+            assert call_args[1]['params']['parser_dpi'] == 72
+            assert call_args[1]['params']['parser_parse_mode'] == "vlm"
+            assert call_args[1]['params']['parser_pdf_pwd'] == "pwd123"
 
 
 # ==================== fetch 测试 ====================

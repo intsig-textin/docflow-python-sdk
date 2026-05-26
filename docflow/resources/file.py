@@ -36,6 +36,9 @@ class FileResource(BaseResource):
         parser_apply_merge: Optional[int] = None,
         parser_formula_level: Optional[int] = None,
         parser_table_text_split_mode: Optional[int] = None,
+        parser_dpi: Optional[int] = None,
+        parser_parse_mode: Optional[str] = None,
+        parser_pdf_pwd: Optional[str] = None,
     ) -> FileUploadResponse:
         """
         上传文件（异步）
@@ -59,6 +62,9 @@ class FileResource(BaseResource):
             parser_apply_merge: 是否应用合并
             parser_formula_level: 公式识别级别
             parser_table_text_split_mode: 表格文字分割模式
+            parser_dpi: 解析DPI，支持72、144、216，默认144
+            parser_parse_mode: 解析模式，支持scan、auto、vlm，默认为auto
+            parser_pdf_pwd: PDF密码
 
         Returns:
             FileUploadResponse: 上传响应
@@ -134,6 +140,12 @@ class FileResource(BaseResource):
             params["parser_formula_level"] = parser_formula_level
         if parser_table_text_split_mode is not None:
             params["parser_table_text_split_mode"] = parser_table_text_split_mode
+        if parser_dpi is not None:
+            params["parser_dpi"] = parser_dpi
+        if parser_parse_mode is not None:
+            params["parser_parse_mode"] = parser_parse_mode
+        if parser_pdf_pwd is not None:
+            params["parser_pdf_pwd"] = parser_pdf_pwd
 
         # 根据上传方式选择不同的请求方式
         if file_urls is not None:
@@ -177,6 +189,9 @@ class FileResource(BaseResource):
         parser_apply_merge: Optional[int] = None,
         parser_formula_level: Optional[int] = None,
         parser_table_text_split_mode: Optional[int] = None,
+        parser_dpi: Optional[int] = None,
+        parser_parse_mode: Optional[str] = None,
+        parser_pdf_pwd: Optional[str] = None,
         with_task_detail_url: Optional[bool] = None,
     ) -> FileFetchResponse:
         """
@@ -201,6 +216,9 @@ class FileResource(BaseResource):
             parser_apply_merge: 是否应用合并
             parser_formula_level: 公式识别级别
             parser_table_text_split_mode: 表格文字分割模式
+            parser_dpi: 解析DPI，支持72、144、216，默认144
+            parser_parse_mode: 解析模式，支持scan、auto、vlm，默认为auto
+            parser_pdf_pwd: PDF密码
             with_task_detail_url: 是否返回任务详情页URL
 
         Returns:
@@ -277,6 +295,12 @@ class FileResource(BaseResource):
             params["parser_formula_level"] = parser_formula_level
         if parser_table_text_split_mode is not None:
             params["parser_table_text_split_mode"] = parser_table_text_split_mode
+        if parser_dpi is not None:
+            params["parser_dpi"] = parser_dpi
+        if parser_parse_mode is not None:
+            params["parser_parse_mode"] = parser_parse_mode
+        if parser_pdf_pwd is not None:
+            params["parser_pdf_pwd"] = parser_pdf_pwd
         if with_task_detail_url is not None:
             params["with_task_detail_url"] = with_task_detail_url
 

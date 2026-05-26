@@ -140,7 +140,10 @@ def example_upload_with_parser_params():
         parser_crop_dewarp=1,  # 裁剪和去畸变 (0=不处理, 1=处理)
         parser_apply_merge=1,  # 应用合并 (0=不合并, 1=合并)
         parser_formula_level=2,  # 公式识别级别 (0/1/2)
-        parser_table_text_split_mode=1  # 表格文字分割模式 (整数值)
+        parser_table_text_split_mode=1,  # 表格文字分割模式 (整数值)
+        parser_dpi=144,  # 解析DPI，支持72、144、216，默认144
+        parser_parse_mode="auto",  # 解析模式，支持scan、auto、vlm，默认为auto
+        parser_pdf_pwd="secret123"  # PDF密码 (加密PDF时使用)
     )
 
     print(f"上传成功,批次号: {response.batch_number}")
