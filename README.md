@@ -829,6 +829,63 @@ SDK 提供以下异常类型：
 3. **定期更新凭证**：使用 `client.set_credentials()` 定期更新认证凭证
 4. **妥善保管凭证**：不要将凭证提交到版本控制系统
 
+## 🚀 发布新版本
+
+发布新版本到 PyPI 的完整操作步骤：
+
+### 1. 更新版本号
+
+需要同步修改以下 3 个文件中的版本号：
+
+```bash
+# pyproject.toml
+version = "x.y.z"
+
+# docflow/__init__.py
+__version__ = "x.y.z"
+
+# setup.py
+version="x.y.z",
+```
+
+### 2. 更新 CHANGELOG
+
+在 `CHANGELOG.md` 顶部添加新版本的变更记录。
+
+### 3. 提交并推送代码
+
+```bash
+git add -A
+git commit -m "bump version to x.y.z"
+git push upstream master
+```
+
+### 4. 创建并推送 tag
+
+```bash
+git tag -a vx.y.z -m "Release version x.y.z"
+git push upstream vx.y.z
+```
+
+推送 tag 后，GitHub Actions 会自动执行：
+1. 校验 tag 格式（必须匹配 `v*` 格式，如 `v1.0.4`）
+2. 校验 tag 版本号与 `pyproject.toml` 中的版本号一致
+3. 构建 Python 包
+4. 发布到 PyPI（通过 trusted publisher OIDC 认证）
+5. 创建 GitHub Release
+
+### 注意事项
+
+- tag 版本号（去掉 `v` 前缀）必须与 `pyproject.toml` 中的 `version` 完全一致，否则 CI 会报错
+- PyPI 需要预先配置好 trusted publisher（仓库：`intsig-textin/docflow-python-sdk`，workflow：`publish.yml`）
+- 如果 CI 失败，修复后需要删除旧 tag 并重新推送：
+  ```bash
+  git push upstream --delete vx.y.z
+  git tag -d vx.y.z
+  git tag -a vx.y.z -m "Release version x.y.z"
+  git push upstream vx.y.z
+  ```
+
 ## 🤝 贡献
 
 欢迎提交 Issue 和 Pull Request！
@@ -839,5 +896,5 @@ MIT License
 
 ---
 
-**版本**: 1.0.0
-**最后更新**: 2026-03-06
+**版本**: 1.0.4
+**最后更新**: 2026-05-26
