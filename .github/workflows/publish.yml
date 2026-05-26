@@ -80,19 +80,14 @@ jobs:
           echo "✅ 包检查通过"
 
       - name: Publish to PyPI
-        env:
-          TWINE_USERNAME: __token__
-          TWINE_PASSWORD: ${{ secrets.PYPI_API_TOKEN }}
-        run: |
-          twine upload dist/*
-          echo "✅ 已发布到 PyPI"
+        uses: pypa/gh-action-pypi-publish@v1.12.4
+        with:
+          verbose: true
 
       - name: Create GitHub Release
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          gh release create ${{ steps.verify_tag.outputs.tag_name }} \
-            --title "${{ steps.verify_tag.outputs.tag_name }}" \
-            --generate-notes \
-            dist/*
-          echo "✅ GitHub Release 创建成功"
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.verify_tag.outputs.tag_name }}
+          name: ${{ steps.verify_tag.outputs.tag_name }}
+          generate_release_notes: true
+          files: dist/*
