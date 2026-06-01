@@ -55,6 +55,7 @@ venv.bak/
 *.swp
 *.swo
 *~
+/docflow-python-sdk.iml
 
 # OS
 .DS_Store

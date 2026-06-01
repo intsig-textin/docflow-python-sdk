@@ -7,6 +7,14 @@ from dataclasses import dataclass, field
 from typing import Optional, List, Dict, Any
 
 
+def _get_first(data: Dict[str, Any], *keys):
+    """从字典中按优先级取值，正确处理 False/0 等 falsy 值"""
+    for k in keys:
+        if k in data:
+            return data[k]
+    return None
+
+
 # ==================== 类别模型 ====================
 
 @dataclass
@@ -124,17 +132,34 @@ class TableListResponse:
 @dataclass
 class TableAddResponse:
     """
-    新增表格响应
+    新增表格响应（支持 with_detail 扩展字段）
 
     对应后端: CategoryTableAddRespVO
     """
     table_id: str
+    name: Optional[str] = None
+    description: Optional[str] = None
+    prompt: Optional[str] = None
+    collect_from_multi_table: Optional[bool] = None
+    extract_model: Optional[str] = None
+    fields: Optional[List["FieldInfo"]] = None
 
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> "TableAddResponse":
         """从字典创建对象"""
+        fields_data = data.get("fields")
+        fields_list = None
+        if fields_data:
+            fields_list = [FieldInfo.from_dict(f) for f in fields_data]
+
         return cls(
-            table_id=str(data.get("tableId") or data.get("table_id"))
+            table_id=str(data.get("tableId") or data.get("table_id")),
+            name=data.get("name"),
+            description=data.get("description"),
+            prompt=data.get("prompt"),
+            collect_from_multi_table=_get_first(data, "collect_from_multi_table", "collectFromMultiTable"),
+            extract_model=_get_first(data, "extract_model", "extractModel"),
+            fields=fields_list,
         )
 
 
@@ -234,17 +259,39 @@ class FieldListResponse:
 @dataclass
 class FieldAddResponse:
     """
-    新增字段响应
+    新增字段响应（支持 with_detail 扩展字段）
 
     对应后端: CategoryFieldAddRespVO
     """
     field_id: str
+    name: Optional[str] = None
+    description: Optional[str] = None
+    prompt: Optional[str] = None
+    use_prompt: Optional[bool] = None
+    alias: Optional[List[str]] = None
+    identity: Optional[str] = None
+    multi_value: Optional[bool] = None
+    duplicate_value_distinct: Optional[bool] = None
+    transform_settings: Optional[Dict[str, Any]] = None
+    extract_model: Optional[str] = None
+    enabled: Optional[int] = None
 
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> "FieldAddResponse":
         """从字典创建对象"""
         return cls(
-            field_id=str(data.get("fieldId") or data.get("field_id"))
+            field_id=str(data.get("fieldId") or data.get("field_id")),
+            name=data.get("name"),
+            description=data.get("description"),
+            prompt=data.get("prompt"),
+            use_prompt=_get_first(data, "use_prompt", "usePrompt"),
+            alias=data.get("alias"),
+            identity=data.get("identity"),
+            multi_value=_get_first(data, "multi_value", "multiValue"),
+            duplicate_value_distinct=_get_first(data, "duplicate_value_distinct", "duplicateValueDistinct"),
+            transform_settings=_get_first(data, "transform_settings", "transformSettings"),
+            extract_model=_get_first(data, "extract_model", "extractModel"),
+            enabled=data.get("enabled"),
         )
 
 
@@ -533,7 +580,7 @@ class SampleUploadResponse:
     """
     上传样本响应
 
-    对应后端: CategorySampleUploadRespVO
+    对应后端: CategorySampleUploadRespVO（单文件上传）
     """
     sample_id: str
 
@@ -543,6 +590,26 @@ class SampleUploadResponse:
         return cls(
             sample_id=str(data.get("sampleId") or data.get("sample_id"))
         )
+
+
+@dataclass
+class BatchSampleUploadResponse:
+    """
+    批量上传样本响应
+
+    对应后端: CategorySampleUploadRespVO（批量上传，with_detail 时含 samples 列表）
+    """
+    samples: Optional[List["SampleInfo"]] = None
+
+    @classmethod
+    def from_dict(cls, data: Dict[str, Any]) -> "BatchSampleUploadResponse":
+        """从字典创建对象"""
+        samples_data = data.get("samples")
+        samples_list = None
+        if samples_data:
+            samples_list = [SampleInfo.from_dict(s) for s in samples_data]
+
+        return cls(samples=samples_list)
 
 
 @dataclass
@@ -569,3 +636,31 @@ class SampleListResponse:
             page_size=data.get("pageSize") or data.get("page_size", 20),
             samples=samples,
         )
+
+
+# ==================== 批量操作响应模型 ====================
+
+@dataclass
+class BatchFieldAddResponse:
+    """批量新增字段响应"""
+    fields: List[FieldAddResponse] = field(default_factory=list)
+
+    @classmethod
+    def from_list(cls, data: List[Dict[str, Any]]) -> "BatchFieldAddResponse":
+        """从列表创建对象"""
+        if not data:
+            return cls(fields=[])
+        return cls(fields=[FieldAddResponse.from_dict(f) for f in data])
+
+
+@dataclass
+class BatchTableAddResponse:
+    """批量新增表格响应"""
+    tables: List[TableAddResponse] = field(default_factory=list)
+
+    @classmethod
+    def from_list(cls, data: List[Dict[str, Any]]) -> "BatchTableAddResponse":
+        """从列表创建对象"""
+        if not data:
+            return cls(tables=[])
+        return cls(tables=[TableAddResponse.from_dict(t) for t in data])

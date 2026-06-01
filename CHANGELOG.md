@@ -5,6 +5,50 @@
 格式基于 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)，
 版本号遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
+## [1.0.5] - 2026-06-01
+
+### Added
+
+- ✨ **一站式创建类别** (`category.create` 新增 `tables` 参数)
+  - 支持在创建类别时同时指定表格配置（含内嵌字段），无需分步操作
+
+- ✨ **批量字段操作** (`CategoryFieldResource`)
+  - `batch_add()`: 批量新增字段，支持普通字段和表格字段
+  - `batch_update()`: 批量更新字段
+
+- ✨ **批量表格操作** (`CategoryTableResource`)
+  - `batch_add()`: 批量新增表格，支持内嵌字段定义
+  - `batch_update()`: 批量更新表格
+
+- ✨ **批量样本操作** (`CategorySampleResource`)
+  - `batch_upload()`: 批量上传样本文件（最多 10 个）
+  - `batch_download()`: 批量下载样本文件（ZIP 打包）
+
+- ✨ **`with_detail` 机制**
+  - 批量新增/更新操作支持 `with_detail=True` 返回完整对象详情（含字段配置、表格列字段等）
+
+- ✨ **增强的响应模型**
+  - `FieldAddResponse`: 扩展支持 name/prompt/use_prompt/alias/identity/multi_value/duplicate_value_distinct/transform_settings/extract_model/enabled
+  - `TableAddResponse`: 扩展支持 name/description/prompt/collect_from_multi_table/extract_model/fields
+  - 新增 `BatchFieldAddResponse`、`BatchTableAddResponse`、`BatchSampleUploadResponse`
+
+- ✨ **Context 层同步更新**
+  - `CategoryFieldContext`: 新增 `batch_add()` / `batch_update()`
+  - `CategoryTableContext`: 新增 `batch_add()` / `batch_update()`
+  - `CategorySampleContext`: 新增 `batch_upload()` / `batch_download()`
+  - `WorkspaceContext.create_category()`: 支持 `tables` 参数
+
+### Fixed
+
+- 🐛 修复 boolean 字段解析中 `or` 运算符错误吞掉 `False` 值的问题（使用 `_get_first` 辅助函数）
+
+### Compatibility
+
+- ⚡ 所有新功能均为 Optional 参数，默认行为与之前版本完全一致
+- ⚡ 现有用户代码零修改即可继续使用
+
+---
+
 ## [1.0.3] - 2026-04-28
 
 ### Added

@@ -180,6 +180,25 @@ class CategoryFieldContext:
             field_ids=field_ids,
         )
 
+    def batch_add(self, fields: List[Dict[str, Any]], table_id: Optional[str] = None, with_detail: Optional[bool] = None):
+        """批量新增字段"""
+        return self._field_resource.batch_add(
+            workspace_id=self.workspace_id,
+            category_id=self.category_id,
+            fields=fields,
+            table_id=table_id,
+            with_detail=with_detail,
+        )
+
+    def batch_update(self, fields: List[Dict[str, Any]], with_detail: Optional[bool] = None):
+        """批量更新字段"""
+        return self._field_resource.batch_update(
+            workspace_id=self.workspace_id,
+            category_id=self.category_id,
+            fields=fields,
+            with_detail=with_detail,
+        )
+
 
 class CategoryTableContext:
     """类别表格上下文"""
@@ -239,6 +258,23 @@ class CategoryTableContext:
             table_ids=table_ids,
         )
 
+    def batch_add(self, tables: List[Dict[str, Any]], with_detail: Optional[bool] = None):
+        """批量新增表格"""
+        return self._table_resource.batch_add(
+            workspace_id=self.workspace_id,
+            category_id=self.category_id,
+            tables=tables,
+            with_detail=with_detail,
+        )
+
+    def batch_update(self, tables: List[Dict[str, Any]]):
+        """批量更新表格"""
+        return self._table_resource.batch_update(
+            workspace_id=self.workspace_id,
+            category_id=self.category_id,
+            tables=tables,
+        )
+
 
 class CategorySampleContext:
     """类别样本上下文"""
@@ -283,6 +319,24 @@ class CategorySampleContext:
             workspace_id=self.workspace_id,
             category_id=self.category_id,
             sample_ids=sample_ids,
+        )
+
+    def batch_upload(self, files: List, with_detail: Optional[bool] = None):
+        """批量上传样本"""
+        return self._sample_resource.batch_upload(
+            workspace_id=self.workspace_id,
+            category_id=self.category_id,
+            files=files,
+            with_detail=with_detail,
+        )
+
+    def batch_download(self, sample_ids: Optional[List[str]] = None, save_path: Optional[str] = None):
+        """批量下载样本（ZIP）"""
+        return self._sample_resource.batch_download(
+            workspace_id=self.workspace_id,
+            category_id=self.category_id,
+            sample_ids=sample_ids,
+            save_path=save_path,
         )
 
 
@@ -672,6 +726,7 @@ class WorkspaceContext:
         sample_files: List[Union[str, BinaryIO]],
         fields: List[Dict[str, Any]],
         category_prompt: Optional[str] = None,
+        tables: Optional[List[Dict[str, Any]]] = None,
     ):
         """
         在当前工作空间创建类别
@@ -682,6 +737,7 @@ class WorkspaceContext:
             sample_files: 样本文件列表
             fields: 字段配置列表
             category_prompt: 类别提示（可选）
+            tables: 表格配置列表（可选，支持一站式创建）
 
         Returns:
             CategoryCreateResponse: 包含新创建的类别 ID
@@ -693,4 +749,5 @@ class WorkspaceContext:
             sample_files=sample_files,
             fields=fields,
             category_prompt=category_prompt,
+            tables=tables,
         )

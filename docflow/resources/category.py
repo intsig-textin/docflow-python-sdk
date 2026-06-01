@@ -19,6 +19,9 @@ from ..models.category import (
     FieldConfigResponse,
     SampleUploadResponse,
     SampleListResponse,
+    BatchFieldAddResponse,
+    BatchTableAddResponse,
+    BatchSampleUploadResponse,
 )
 from ..utils.file_handler import FileHandler
 from ..enums import ExtractModel, EnabledStatus, EnabledFlag, FieldType
@@ -66,6 +69,7 @@ class CategoryResource(BaseResource):
         sample_files: List[Union[str, BinaryIO]],
         fields: List[Dict[str, Any]],
         category_prompt: Optional[str] = None,
+        tables: Optional[List[Dict[str, Any]]] = None,
     ) -> CategoryCreateResponse:
         """
         创建文件类别
@@ -81,6 +85,16 @@ class CategoryResource(BaseResource):
                     {"name": "金额", "description": "发票总金额"}
                 ]
             category_prompt: 类别提示（最大 150 字符，可选）
+            tables: 表格配置列表（可选，支持一站式创建），每项可含 name/prompt/extract_model/collect_from_multi_table/fields[]，例如:
+                [
+                    {
+                        "name": "费用明细",
+                        "prompt": "请抽取每行费用",
+                        "extract_model": "Model 1",
+                        "collect_from_multi_table": False,
+                        "fields": [{"name": "日期"}, {"name": "金额"}]
+                    }
+                ]
 
         Returns:
             CategoryCreateResponse: 包含新创建的类别 ID
@@ -169,6 +183,9 @@ class CategoryResource(BaseResource):
 
         if category_prompt:
             data["category_prompt"] = category_prompt
+
+        if tables:
+            data["tables"] = json.dumps(tables, ensure_ascii=False)
 
         # 准备文件
         files = FileHandler.prepare_files(sample_files, field_name="sample_files")
@@ -704,6 +721,106 @@ class CategoryTableResource(BaseResource):
             f"{API_PREFIX}/category/tables/delete", json_data=payload
         )
 
+    def batch_add(
+        self,
+        workspace_id: str,
+        category_id: str,
+        tables: List[Dict[str, Any]],
+        with_detail: Optional[bool] = None,
+    ) -> BatchTableAddResponse:
+        """
+        批量新增表格（支持内嵌字段）
+
+        Args:
+            workspace_id: 工作空间 ID
+            category_id: 类别 ID
+            tables: 表格配置列表，每项含 name(必填) + prompt/collect_from_multi_table/extract_model/fields[]
+            with_detail: 是否返回完整详情（默认 False）
+
+        Returns:
+            BatchTableAddResponse: 批量创建结果
+
+        Examples:
+            >>> result = client.category.tables.batch_add(
+            ...     workspace_id="123",
+            ...     category_id="456",
+            ...     tables=[
+            ...         {"name": "费用明细", "prompt": "抽取费用", "fields": [{"name": "日期"}]},
+            ...         {"name": "住宿明细", "collect_from_multi_table": True},
+            ...     ],
+            ...     with_detail=True,
+            ... )
+        """
+        self._validate_workspace_id(workspace_id)
+        self._validate_id(category_id, "类别 ID")
+
+        if not tables:
+            raise ValidationError(
+                "tables 不能为空",
+                i18n_key='error.table.batch_add_empty'
+            )
+
+        payload = {
+            "workspace_id": workspace_id,
+            "category_id": category_id,
+            "tables": tables,
+        }
+
+        if with_detail is not None:
+            payload["with_detail"] = with_detail
+
+        response = self.http_client.post(
+            f"{API_PREFIX}/category/tables/batch_add", json_data=payload
+        )
+
+        result_data = response.get("result")
+        if isinstance(result_data, list):
+            return BatchTableAddResponse.from_list(result_data)
+        return BatchTableAddResponse(tables=[])
+
+    def batch_update(
+        self,
+        workspace_id: str,
+        category_id: str,
+        tables: List[Dict[str, Any]],
+    ) -> None:
+        """
+        批量更新表格
+
+        Args:
+            workspace_id: 工作空间 ID
+            category_id: 类别 ID
+            tables: 表格更新列表，每项必须含 table_id + 要更新的属性（name/prompt/extract_model/collect_from_multi_table）
+
+        Examples:
+            >>> client.category.tables.batch_update(
+            ...     workspace_id="123",
+            ...     category_id="456",
+            ...     tables=[
+            ...         {"table_id": "t001", "name": "费用明细_v2"},
+            ...         {"table_id": "t002", "collect_from_multi_table": True},
+            ...     ]
+            ... )
+        """
+        self._validate_workspace_id(workspace_id)
+        self._validate_id(category_id, "类别 ID")
+
+        if not tables:
+            raise ValidationError(
+                "tables 不能为空",
+                i18n_key='error.table.batch_update_empty'
+            )
+
+        payload = {
+            "workspace_id": workspace_id,
+            "category_id": category_id,
+            "tables": tables,
+        }
+
+        self.http_client.post(
+            f"{API_PREFIX}/category/tables/batch_update", json_data=payload
+        )
+
 
 class CategoryFieldResource(BaseResource):
     """
@@ -1048,6 +1165,127 @@ class CategoryFieldResource(BaseResource):
         self.http_client.post(
             f"{API_PREFIX}/category/fields/delete", json_data=payload
         )
+
+    def batch_add(
+        self,
+        workspace_id: str,
+        category_id: str,
+        fields: List[Dict[str, Any]],
+        table_id: Optional[str] = None,
+        with_detail: Optional[bool] = None,
+    ) -> BatchFieldAddResponse:
+        """
+        批量新增字段
+
+        Args:
+            workspace_id: 工作空间 ID
+            category_id: 类别 ID
+            fields: 字段配置列表，每项含 name(必填) + 其他可选配置
+            table_id: 表格 ID（可选，不传创建普通字段，传入则创建表格字段）
+            with_detail: 是否返回完整详情（默认 False）
+
+        Returns:
+            BatchFieldAddResponse: 批量创建结果
+
+        Examples:
+            >>> result = client.category.fields.batch_add(
+            ...     workspace_id="123",
+            ...     category_id="456",
+            ...     fields=[
+            ...         {"name": "发票号码", "prompt": "发票唯一标识"},
+            ...         {"name": "金额", "description": "总金额"},
+            ...     ],
+            ...     with_detail=True,
+            ... )
+            >>> for f in result.fields:
+            ...     print(f.field_id)
+        """
+        self._validate_workspace_id(workspace_id)
+        self._validate_id(category_id, "类别 ID")
+
+        if not fields:
+            raise ValidationError(
+                "fields 不能为空",
+                i18n_key='error.field.batch_add_empty'
+            )
+
+        payload = {
+            "workspace_id": workspace_id,
+            "category_id": category_id,
+            "fields": fields,
+        }
+
+        if table_id is not None:
+            payload["table_id"] = table_id
+
+        if with_detail is not None:
+            payload["with_detail"] = with_detail
+
+        response = self.http_client.post(
+            f"{API_PREFIX}/category/fields/batch_add", json_data=payload
+        )
+
+        result_data = response.get("result")
+        if isinstance(result_data, list):
+            return BatchFieldAddResponse.from_list(result_data)
+        return BatchFieldAddResponse(fields=[])
+
+    def batch_update(
+        self,
+        workspace_id: str,
+        category_id: str,
+        fields: List[Dict[str, Any]],
+        with_detail: Optional[bool] = None,
+    ) -> Optional[BatchFieldAddResponse]:
+        """
+        批量更新字段
+
+        Args:
+            workspace_id: 工作空间 ID
+            category_id: 类别 ID
+            fields: 字段更新列表，每项必须含 field_id + 要更新的属性
+            with_detail: 是否返回完整详情（默认 False）
+
+        Returns:
+            BatchFieldAddResponse or None: with_detail=True 时返回更新后的字段列表
+
+        Examples:
+            >>> result = client.category.fields.batch_update(
+            ...     workspace_id="123",
+            ...     category_id="456",
+            ...     fields=[
+            ...         {"field_id": "f001", "name": "发票号码_v2"},
+            ...         {"field_id": "f002", "description": "更新描述"},
+            ...     ],
+            ...     with_detail=True,
+            ... )
+        """
+        self._validate_workspace_id(workspace_id)
+        self._validate_id(category_id, "类别 ID")
+
+        if not fields:
+            raise ValidationError(
+                "fields 不能为空",
+                i18n_key='error.field.batch_update_empty'
+            )
+
+        payload = {
+            "workspace_id": workspace_id,
+            "category_id": category_id,
+            "fields": fields,
+        }
+
+        if with_detail is not None:
+            payload["with_detail"] = with_detail
+
+        response = self.http_client.post(
+            f"{API_PREFIX}/category/fields/batch_update", json_data=payload
+        )
+
+        result_data = response.get("result")
+        if isinstance(result_data, list):
+            return BatchFieldAddResponse.from_list(result_data)
+        return None
 
 
 class CategorySampleResource(BaseResource):
@@ -1398,3 +1636,135 @@ class CategorySampleResource(BaseResource):
         self.http_client.post(
             f"{API_PREFIX}/category/sample/delete", json_data=payload
         )
+
+    def batch_upload(
+        self,
+        workspace_id: str,
+        category_id: str,
+        files: List[Union[str, BinaryIO]],
+        with_detail: Optional[bool] = None,
+    ) -> BatchSampleUploadResponse:
+        """
+        批量上传样本文件
+
+        Args:
+            workspace_id: 工作空间 ID
+            category_id: 类别 ID
+            files: 文件路径或文件对象列表（最多 10 个）
+            with_detail: 是否返回该分类全部样本列表（默认 False）
+
+        Returns:
+            BatchSampleUploadResponse: 包含样本列表（with_detail=True 时）
+
+        Examples:
+            >>> result = client.category.samples.batch_upload(
+            ...     workspace_id="123",
+            ...     category_id="456",
+            ...     files=["sample1.pdf", "sample2.pdf"],
+            ...     with_detail=True,
+            ... )
+            >>> for s in result.samples:
+            ...     print(s.sample_id, s.file_name)
+        """
+        self._validate_workspace_id(workspace_id)
+        self._validate_id(category_id, "类别 ID")
+
+        if not files:
+            raise ValidationError(
+                "files 不能为空",
+                i18n_key='error.sample.batch_upload_empty'
+            )
+
+        if len(files) > 10:
+            raise ValidationError(
+                "样本文件数量超过上限 10",
+                i18n_key='error.sample.batch_upload_limit'
+            )
+
+        data = {"workspace_id": workspace_id, "category_id": category_id}
+
+        if with_detail is not None:
+            data["with_detail"] = str(with_detail).lower()
+
+        prepared_files = FileHandler.prepare_files(files, field_name="files")
+
+        response = self.http_client.request(
+            method="POST",
+            path=f"{API_PREFIX}/category/sample/batch_upload",
+            files=prepared_files,
+            data=data,
+        )
+
+        return BatchSampleUploadResponse.from_dict(response.get("result") or {})
+
+    def batch_download(
+        self,
+        workspace_id: str,
+        category_id: str,
+        sample_ids: Optional[List[str]] = None,
+        save_path: Optional[str] = None,
+    ) -> Union[bytes, Tuple[bytes, str]]:
+        """
+        批量下载样本文件（ZIP 打包）
+
+        Args:
+            workspace_id: 工作空间 ID
+            category_id: 类别 ID
+            sample_ids: 要下载的样本 ID 列表（可选，不传则下载全部）
+            save_path: 保存目录路径（可选）
+
+        Returns:
+            Union[bytes, Tuple[bytes, str]]:
+                - 如果提供了 save_path: 返回文件字节数据
+                - 如果未提供 save_path: 返回 (文件字节数据, 文件名) 元组
+
+        Examples:
+            >>> # 下载指定样本为 ZIP
+            >>> file_data, filename = client.category.samples.batch_download(
+            ...     workspace_id="123",
+            ...     category_id="456",
+            ...     sample_ids=["s001", "s002"],
+            ... )
+            >>>
+            >>> # 下载全部样本并保存
+            >>> client.category.samples.batch_download(
+            ...     workspace_id="123",
+            ...     category_id="456",
+            ...     save_path="/path/to/directory",
+            ... )
+        """
+        self._validate_workspace_id(workspace_id)
+        self._validate_id(category_id, "类别 ID")
+
+        payload = {
+            "workspace_id": workspace_id,
+            "category_id": category_id,
+        }
+
+        if sample_ids is not None:
+            payload["sample_ids"] = sample_ids
+
+        url = f"{self.http_client.base_url}{API_PREFIX}/category/sample/batch_download"
+        headers = self.http_client._build_headers()
+        headers["Content-Type"] = "application/json"
+
+        response = self.http_client.session.post(
+            url,
+            data=json.dumps(payload),
+            headers=headers,
+            timeout=self.http_client.config.timeout,
+            stream=True,
+        )
+
+        response.raise_for_status()
+
+        filename = self._extract_filename_from_headers(response.headers, response)
+        file_data = response.content
+
+        if save_path:
+            full_path = os.path.join(save_path, filename)
+            with open(full_path, "wb") as f:
+                f.write(file_data)
+            return file_data
+        else:
+            return file_data, filename
