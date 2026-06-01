@@ -57,13 +57,19 @@ TRANSLATIONS = {
     # Table related
     'error.table.name_empty': 'Table name cannot be empty',
     'error.table.delete_list_empty': 'table_ids cannot be empty',
+    'error.table.batch_add_empty': 'tables cannot be empty',
+    'error.table.batch_update_empty': 'tables cannot be empty',
 
     # Field related
     'error.field.name_empty': 'Field name cannot be empty',
     'error.field.delete_list_empty': 'field_ids cannot be empty',
+    'error.field.batch_add_empty': 'fields cannot be empty',
+    'error.field.batch_update_empty': 'fields cannot be empty',
 
     # Sample related
     'error.sample.delete_list_empty': 'sample_ids cannot be empty',
+    'error.sample.batch_upload_empty': 'files cannot be empty',
+    'error.sample.batch_upload_limit': 'Number of sample files exceeds the limit of 10',
     'error.sample.missing_content_disposition': 'Content-Disposition header is missing, cannot retrieve filename',
     'error.sample.cannot_extract_filename': 'Cannot extract filename from Content-Disposition header',
 

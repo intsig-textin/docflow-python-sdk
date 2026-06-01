@@ -58,13 +58,19 @@ TRANSLATIONS = {
     # 表格相关
     'error.table.name_empty': '表格名称不能为空',
     'error.table.delete_list_empty': 'table_ids 不能为空',
+    'error.table.batch_add_empty': 'tables 不能为空',
+    'error.table.batch_update_empty': 'tables 不能为空',
 
     # 字段相关
     'error.field.name_empty': '字段名称不能为空',
     'error.field.delete_list_empty': 'field_ids 不能为空',
+    'error.field.batch_add_empty': 'fields 不能为空',
+    'error.field.batch_update_empty': 'fields 不能为空',
 
     # 样本相关
     'error.sample.delete_list_empty': 'sample_ids 不能为空',
+    'error.sample.batch_upload_empty': 'files 不能为空',
+    'error.sample.batch_upload_limit': '样本文件数量超过上限 10',
     'error.sample.missing_content_disposition': '响应头中缺少 Content-Disposition，无法获取文件名',
     'error.sample.cannot_extract_filename': '无法从 Content-Disposition 中提取文件名',
 
