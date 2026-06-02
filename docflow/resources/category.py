@@ -807,7 +807,8 @@ class CategoryTableResource(BaseResource):
         workspace_id: str,
         category_id: str,
         tables: List[Dict[str, Any]],
-    ) -> None:
+        with_detail: Optional[bool] = None,
+    ) -> Optional[BatchTableAddResponse]:
         """
         批量更新表格
 
@@ -815,6 +816,10 @@ class CategoryTableResource(BaseResource):
             workspace_id: 工作空间 ID
             category_id: 类别 ID
             tables: 表格更新列表，每项必须含 table_id + 要更新的属性（name/prompt/extract_model/collect_from_multi_table）
+            with_detail: 是否返回完整详情（默认 False）
+
+        Returns:
+            BatchTableAddResponse or None: with_detail=True 时返回更新后的表格列表
 
         Examples:
             >>> client.category.tables.batch_update(
@@ -823,7 +828,8 @@ class CategoryTableResource(BaseResource):
             ...     tables=[
             ...         {"table_id": "t001", "name": "费用明细_v2"},
             ...         {"table_id": "t002", "collect_from_multi_table": True},
-            ...     ]
+            ...     ],
+            ...     with_detail=True,
             ... )
         """
         self._validate_workspace_id(workspace_id)
@@ -841,9 +847,17 @@ class CategoryTableResource(BaseResource):
             "tables": tables,
         }
 
-        self.http_client.post(
+        if with_detail is not None:
+            payload["with_detail"] = with_detail
+
+        response = self.http_client.post(
             f"{API_PREFIX}/category/tables/batch_update", json_data=payload
         )
+
+        result_data = response.get("result")
+        if isinstance(result_data, list):
+            return BatchTableAddResponse.from_list(result_data)
+        return None
 
 
 class CategoryFieldResource(BaseResource):

@@ -267,12 +267,13 @@ class CategoryTableContext:
             with_detail=with_detail,
         )
 
-    def batch_update(self, tables: List[Dict[str, Any]]):
+    def batch_update(self, tables: List[Dict[str, Any]], with_detail: Optional[bool] = None):
         """批量更新表格"""
         return self._table_resource.batch_update(
             workspace_id=self.workspace_id,
             category_id=self.category_id,
             tables=tables,
+            with_detail=with_detail,
         )
 
 
