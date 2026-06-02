@@ -1052,11 +1052,14 @@ class CategoryFieldResource(BaseResource):
             description: 新的描述（可选）
             table_id: 字段所属表格id（可选）
             extract_model: 字段级别抽取模型（ExtractModel.Model_1/Model_2/Model_3，可选）
-            **kwargs: 其他要更新的字段配置参数，如：
+            **kwargs: 其他要更新的字段配置参数（不传的参数保持原值不变），如：
                 - prompt: 语义抽取提示词
                 - use_prompt: 是否使用语义提示词
-                - alias: 字段别名列表
-                - transform_settings: 转换配置（字典）
+                - alias: 字段别名列表（不传=不修改，传 [] 清空别名，传 ["a","b"] 覆盖）
+                - identity: 导出字段名（不传=不修改，传 "" 清空，传非空值覆盖）
+                - multi_value: 是否多值抽取（不传=不修改，True/False 覆盖）
+                - duplicate_value_distinct: 是否重复值去重（不传=不修改，True/False，仅 multi_value=True 时有效）
+                - transform_settings: 转换配置（不传=不修改，传字典覆盖）
 
         Examples:
             >>> from docflow import FieldType, ExtractModel
@@ -1067,6 +1070,22 @@ class CategoryFieldResource(BaseResource):
             ...     field_id="789",
             ...     name="更新后的字段名",
             ...     extract_model=ExtractModel.Model_2
+            ... )
+            >>>
+            >>> # 设置别名
+            >>> client.category.fields.update(
+            ...     workspace_id="123",
+            ...     category_id="456",
+            ...     field_id="789",
+            ...     alias=["发票号", "票号", "Invoice No."]
+            ... )
+            >>>
+            >>> # 清空别名
+            >>> client.category.fields.update(
+            ...     workspace_id="123",
+            ...     category_id="456",
+            ...     field_id="789",
+            ...     alias=[]
             ... )
             >>>
             >>> # 更新字段转换配置
@@ -1243,13 +1262,14 @@ class CategoryFieldResource(BaseResource):
         Args:
             workspace_id: 工作空间 ID
             category_id: 类别 ID
-            fields: 字段更新列表，每项必须含 field_id + 要更新的属性
+            fields: 字段更新列表，每项必须含 field_id + 要更新的属性（字典中不包含的 key 保持原值不变）
             with_detail: 是否返回完整详情（默认 False）
 
         Returns:
             BatchFieldAddResponse or None: with_detail=True 时返回更新后的字段列表
 
         Examples:
+            >>> # 批量更新名称和描述
             >>> result = client.category.fields.batch_update(
             ...     workspace_id="123",
             ...     category_id="456",
@@ -1258,6 +1278,17 @@ class CategoryFieldResource(BaseResource):
             ...         {"field_id": "f002", "description": "更新描述"},
             ...     ],
             ...     with_detail=True,
+            ... )
+            >>>
+            >>> # 批量设置别名（alias=[] 清空，alias=["a","b"] 覆盖）
+            >>> client.category.fields.batch_update(
+            ...     workspace_id="123",
+            ...     category_id="456",
+            ...     fields=[
+            ...         {"field_id": "f001", "alias": ["票号", "发票号"]},
+            ...         {"field_id": "f002", "alias": []},  # 清空别名
+            ...         {"field_id": "f003", "multi_value": True},
+            ...     ],
             ... )
         """
         self._validate_workspace_id(workspace_id)
