@@ -28,6 +28,8 @@
   - 批量新增/更新操作支持 `with_detail=True` 返回完整对象详情（含字段配置、表格列字段等）
 
 - ✨ **增强的响应模型**
+  - `CategoryCreateResponse`: 扩展支持 name/description/category_prompt/extract_model/enabled/fields/tables/samples（`with_detail=True` 时返回完整分类信息）
+  - `SampleUploadResponse`: 扩展支持 samples 列表（`with_detail=True` 时返回该分类下全部样本）
   - `FieldAddResponse`: 扩展支持 name/prompt/use_prompt/alias/identity/multi_value/duplicate_value_distinct/transform_settings/extract_model/enabled
   - `TableAddResponse`: 扩展支持 name/description/prompt/collect_from_multi_table/extract_model/fields
   - 新增 `BatchFieldAddResponse`、`BatchTableAddResponse`、`BatchSampleUploadResponse`

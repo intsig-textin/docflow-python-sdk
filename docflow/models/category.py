@@ -49,14 +49,35 @@ class CategoryCreateResponse:
     创建类别响应
 
     对应后端: CategoryCreateRespVO
+    with_detail=true 时服务端返回完整分类信息（name/fields/tables/samples 等）
     """
     category_id: str
+    name: Optional[str] = None
+    description: Optional[str] = None
+    category_prompt: Optional[str] = None
+    extract_model: Optional[str] = None
+    enabled: Optional[int] = None
+    fields: Optional[List["FieldInfo"]] = None
+    tables: Optional[List["TableWithFields"]] = None
+    samples: Optional[List["SampleInfo"]] = None
 
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> "CategoryCreateResponse":
         """从字典创建对象"""
+        fields_data = data.get("fields")
+        tables_data = data.get("tables")
+        samples_data = data.get("samples")
+
         return cls(
-            category_id=str(data.get("categoryId") or data.get("category_id"))
+            category_id=str(data.get("categoryId") or data.get("category_id")),
+            name=data.get("name"),
+            description=data.get("description"),
+            category_prompt=data.get("category_prompt") or data.get("categoryPrompt"),
+            extract_model=data.get("extract_model") or data.get("extractModel"),
+            enabled=data.get("enabled"),
+            fields=[FieldInfo.from_dict(f) for f in fields_data] if fields_data else None,
+            tables=[TableWithFields.from_dict(t) for t in tables_data] if tables_data else None,
+            samples=[SampleInfo.from_dict(s) for s in samples_data] if samples_data else None,
         )
 
 
@@ -585,14 +606,18 @@ class SampleUploadResponse:
     上传样本响应
 
     对应后端: CategorySampleUploadRespVO（单文件上传）
+    with_detail=true 时服务端额外返回该分类下全部样本列表
     """
     sample_id: str
+    samples: Optional[List["SampleInfo"]] = None
 
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> "SampleUploadResponse":
         """从字典创建对象"""
+        samples_data = data.get("samples")
         return cls(
-            sample_id=str(data.get("sampleId") or data.get("sample_id"))
+            sample_id=str(data.get("sampleId") or data.get("sample_id")),
+            samples=[SampleInfo.from_dict(s) for s in samples_data] if samples_data else None,
         )
 
 

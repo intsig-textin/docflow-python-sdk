@@ -10,7 +10,8 @@ from docflow.models.workspace import (
 from docflow.models.category import (
     CategoryInfo,
     CategoryCreateResponse,
-    CategoryListResponse
+    CategoryListResponse,
+    SampleUploadResponse,
 )
 from docflow.models.file import (
     FileInfo,
@@ -82,6 +83,65 @@ class TestCategoryModels:
         """测试类别创建响应"""
         response = CategoryCreateResponse(category_id="456")
         assert response.category_id == "456"
+        assert response.fields is None
+        assert response.tables is None
+        assert response.samples is None
+
+    def test_category_create_response_with_detail(self):
+        """测试类别创建响应（with_detail=True）"""
+        data = {
+            "category_id": "456",
+            "name": "发票",
+            "description": "增值税发票",
+            "category_prompt": "请识别发票类型",
+            "extract_model": "Model 1",
+            "enabled": 1,
+            "fields": [
+                {"id": "f1", "name": "金额", "description": "发票金额"}
+            ],
+            "tables": [
+                {"id": "t1", "name": "明细表", "fields": [
+                    {"id": "tf1", "name": "品名"}
+                ]}
+            ],
+            "samples": [
+                {"sample_id": "s1", "file_name": "sample.pdf"}
+            ],
+        }
+        response = CategoryCreateResponse.from_dict(data)
+        assert response.category_id == "456"
+        assert response.name == "发票"
+        assert response.description == "增值税发票"
+        assert response.category_prompt == "请识别发票类型"
+        assert response.extract_model == "Model 1"
+        assert response.enabled == 1
+        assert len(response.fields) == 1
+        assert response.fields[0].name == "金额"
+        assert len(response.tables) == 1
+        assert response.tables[0].name == "明细表"
+        assert len(response.tables[0].fields) == 1
+        assert len(response.samples) == 1
+        assert response.samples[0].file_name == "sample.pdf"
+
+    def test_sample_upload_response(self):
+        """测试样本上传响应"""
+        response = SampleUploadResponse.from_dict({"sample_id": "s1"})
+        assert response.sample_id == "s1"
+        assert response.samples is None
+
+    def test_sample_upload_response_with_detail(self):
+        """测试样本上传响应（with_detail=True）"""
+        data = {
+            "sample_id": "s1",
+            "samples": [
+                {"sample_id": "s1", "file_name": "a.pdf"},
+                {"sample_id": "s2", "file_name": "b.pdf"},
+            ]
+        }
+        response = SampleUploadResponse.from_dict(data)
+        assert response.sample_id == "s1"
+        assert len(response.samples) == 2
+        assert response.samples[1].file_name == "b.pdf"
 
     def test_category_list_response(self):
         """测试类别列表响应"""
