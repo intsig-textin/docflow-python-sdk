@@ -70,6 +70,7 @@ class CategoryResource(BaseResource):
         fields: List[Dict[str, Any]],
         category_prompt: Optional[str] = None,
         tables: Optional[List[Dict[str, Any]]] = None,
+        with_detail: Optional[bool] = None,
     ) -> CategoryCreateResponse:
         """
         创建文件类别
@@ -187,6 +188,9 @@ class CategoryResource(BaseResource):
         if tables:
             data["tables"] = json.dumps(tables, ensure_ascii=False)
 
+        if with_detail is not None:
+            data["with_detail"] = str(with_detail).lower()
+
         # 准备文件
         files = FileHandler.prepare_files(sample_files, field_name="sample_files")
 
@@ -279,8 +283,9 @@ class CategoryResource(BaseResource):
         category_prompt: Optional[str] = None,
         enabled: Optional[Union[EnabledFlag, int]] = None,
         extract_model: Optional[Union[ExtractModel, str]] = None,
+        with_detail: Optional[bool] = None,
         **kwargs,
-    ) -> None:
+    ) -> Optional[Dict[str, Any]]:
         """
         更新文件类别
 
@@ -358,9 +363,16 @@ class CategoryResource(BaseResource):
                 )
             payload["enabled"] = enabled_value
 
+        if with_detail is not None:
+            payload["with_detail"] = with_detail
+
         payload.update(kwargs)
 
-        self.http_client.post(f"{API_PREFIX}/category/update", json_data=payload)
+        response = self.http_client.post(f"{API_PREFIX}/category/update", json_data=payload)
+
+        if with_detail and response.get("result"):
+            return response["result"]
+        return None
 
     def delete(self, workspace_id: str, category_ids: List[str]) -> None:
         """
@@ -538,6 +550,7 @@ class CategoryTableResource(BaseResource):
         prompt: Optional[str] = None,
         collect_from_multi_table: Optional[bool] = None,
         extract_model: Optional[Union[ExtractModel, str]] = None,
+        with_detail: Optional[bool] = None,
         **kwargs,
     ) -> TableAddResponse:
         """
@@ -598,6 +611,9 @@ class CategoryTableResource(BaseResource):
                 )
             payload["extract_model"] = extract_model_value
 
+        if with_detail is not None:
+            payload["with_detail"] = with_detail
+
         payload.update(kwargs)
 
         response = self.http_client.post(
@@ -615,8 +631,9 @@ class CategoryTableResource(BaseResource):
         name: Optional[str] = None,
         prompt: Optional[str] = None,
         extract_model: Optional[Union[ExtractModel, str]] = None,
+        with_detail: Optional[bool] = None,
         **kwargs,
-    ) -> None:
+    ) -> Optional[TableAddResponse]:
         """
         更新表格
 
@@ -674,11 +691,18 @@ class CategoryTableResource(BaseResource):
                 )
             payload["extract_model"] = extract_model_value
 
+        if with_detail is not None:
+            payload["with_detail"] = with_detail
+
         payload.update(kwargs)
 
-        self.http_client.post(
+        response = self.http_client.post(
             f"{API_PREFIX}/category/tables/update", json_data=payload
         )
+
+        if with_detail and response.get("result"):
+            return TableAddResponse.from_dict(response["result"])
+        return None
 
     def delete(
         self, workspace_id: str, category_id: str, table_ids: List[str]
@@ -880,6 +904,7 @@ class CategoryFieldResource(BaseResource):
         description: Optional[str] = None,
         table_id: Optional[str] = None,
         extract_model: Optional[Union[ExtractModel, str]] = None,
+        with_detail: Optional[bool] = None,
         **kwargs,
     ) -> FieldAddResponse:
         """
@@ -983,6 +1008,9 @@ class CategoryFieldResource(BaseResource):
                 )
             payload["extract_model"] = extract_model_value
 
+        if with_detail is not None:
+            payload["with_detail"] = with_detail
+
         payload.update(kwargs)
 
         response = self.http_client.post(
@@ -1039,8 +1067,9 @@ class CategoryFieldResource(BaseResource):
         description: Optional[str] = None,
         table_id: Optional[str] = None,
         extract_model: Optional[Union[ExtractModel, str]] = None,
+        with_detail: Optional[bool] = None,
         **kwargs,
-    ) -> None:
+    ) -> Optional[FieldAddResponse]:
         """
         更新字段
 
@@ -1134,11 +1163,18 @@ class CategoryFieldResource(BaseResource):
                 )
             payload["extract_model"] = extract_model_value
 
+        if with_detail is not None:
+            payload["with_detail"] = with_detail
+
         payload.update(kwargs)
 
-        self.http_client.post(
+        response = self.http_client.post(
             f"{API_PREFIX}/category/fields/update", json_data=payload
         )
+
+        if with_detail and response.get("result"):
+            return FieldAddResponse.from_dict(response["result"])
+        return None
 
     def delete(
         self, workspace_id: str, category_id: str, field_ids: List[str], table_id: Optional[str] = None
@@ -1341,7 +1377,8 @@ class CategorySampleResource(BaseResource):
     """
 
     def upload(
-        self, workspace_id: str, category_id: str, file: Union[str, BinaryIO]
+        self, workspace_id: str, category_id: str, file: Union[str, BinaryIO],
+        with_detail: Optional[bool] = None,
     ) -> SampleUploadResponse:
         """
         上传样本文件
@@ -1375,6 +1412,9 @@ class CategorySampleResource(BaseResource):
         self._validate_id(category_id, "类别 ID")
 
         data = {"workspace_id": workspace_id, "category_id": category_id}
+
+        if with_detail is not None:
+            data["with_detail"] = str(with_detail).lower()
 
         # 准备文件
         files = [FileHandler.prepare_file(file, field_name="file")]

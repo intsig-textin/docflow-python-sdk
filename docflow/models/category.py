@@ -212,6 +212,8 @@ class TableWithFields:
     id: str  # 表格ID
     name: str
     description: Optional[str] = None
+    prompt: Optional[str] = None
+    collect_from_multi_table: Optional[bool] = None
     fields: List[FieldInfo] = field(default_factory=list)
     extract_model: Optional[str] = None
 
@@ -225,8 +227,10 @@ class TableWithFields:
             id=str(data.get("id") or data.get("table_id") or data.get("tableId")),
             name=data.get("name"),
             description=data.get("description"),
+            prompt=data.get("prompt"),
+            collect_from_multi_table=_get_first(data, "collect_from_multi_table", "collectFromMultiTable"),
             fields=fields,
-            extract_model=data.get("extract_model") or data.get("extractModel")
+            extract_model=_get_first(data, "extract_model", "extractModel"),
         )
 
 
