@@ -1735,7 +1735,7 @@ class CategorySampleResource(BaseResource):
         Args:
             workspace_id: 工作空间 ID
             category_id: 类别 ID
-            files: 文件路径或文件对象列表（最多 10 个）
+            files: 文件路径或文件对象列表（最多 20 个）
             with_detail: 是否返回该分类全部样本列表（默认 False）
 
         Returns:
@@ -1760,9 +1760,9 @@ class CategorySampleResource(BaseResource):
                 i18n_key='error.sample.batch_upload_empty'
             )
 
-        if len(files) > 10:
+        if len(files) > 20:
             raise ValidationError(
-                "样本文件数量超过上限 10",
+                "样本文件数量超过上限 20",
                 i18n_key='error.sample.batch_upload_limit'
             )
 

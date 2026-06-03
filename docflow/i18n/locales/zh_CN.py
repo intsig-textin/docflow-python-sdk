@@ -70,7 +70,7 @@ TRANSLATIONS = {
     # 样本相关
     'error.sample.delete_list_empty': 'sample_ids 不能为空',
     'error.sample.batch_upload_empty': 'files 不能为空',
-    'error.sample.batch_upload_limit': '样本文件数量超过上限 10',
+    'error.sample.batch_upload_limit': '样本文件数量超过上限 20',
     'error.sample.missing_content_disposition': '响应头中缺少 Content-Disposition，无法获取文件名',
     'error.sample.cannot_extract_filename': '无法从 Content-Disposition 中提取文件名',
 

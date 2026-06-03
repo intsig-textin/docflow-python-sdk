@@ -69,7 +69,7 @@ TRANSLATIONS = {
     # Sample related
     'error.sample.delete_list_empty': 'sample_ids cannot be empty',
     'error.sample.batch_upload_empty': 'files cannot be empty',
-    'error.sample.batch_upload_limit': 'Number of sample files exceeds the limit of 10',
+    'error.sample.batch_upload_limit': 'Number of sample files exceeds the limit of 20',
     'error.sample.missing_content_disposition': 'Content-Disposition header is missing, cannot retrieve filename',
     'error.sample.cannot_extract_filename': 'Cannot extract filename from Content-Disposition header',
 

@@ -21,7 +21,7 @@
   - `batch_update()`: 批量更新表格
 
 - ✨ **批量样本操作** (`CategorySampleResource`)
-  - `batch_upload()`: 批量上传样本文件（最多 10 个）
+  - `batch_upload()`: 批量上传样本文件（最多 20 个）
   - `batch_download()`: 批量下载样本文件（ZIP 打包）
 
 - ✨ **`with_detail` 机制**
