@@ -7,6 +7,27 @@
 格式基于 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)，
 版本号遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
+## [1.1.1] - 2026-07-22
+
+### Added
+
+- 🌐 新增中英文双语项目文档、快速开始指南及完整样例代码
+- 🧩 新增前向兼容响应模型，保留 API 新增但 SDK 尚未声明的字段：
+  - 未知字段可通过 `extra_fields` 或同名属性访问
+  - 文件和审核资源的顶层及嵌套响应均支持该机制
+
+### Changed
+
+- 📄 `FileInfo` 与 API `FileDetailInfo` schema 对齐，新增 `parsedDetail`、
+  `child_files`、`parser_params` 字段
+- 🔤 `FileInfo.failure_causes` 类型由 `List[str]` 调整为 `str`
+
+### Fixed
+
+- 🐛 修复 `file.upload()`、`file.upload_sync()`、`file.fetch()`、`file.iter()`、
+  `file.extract_fields()` 在 API 返回新增字段时因 `TypeError` 崩溃的问题
+- 🛡️ 修复文件更新、删除及审核规则相关接口直接使用 API 字典构造模型时的同类前向兼容风险
+
 ## [1.1.0] - 2026-07-02
 
 ### Added

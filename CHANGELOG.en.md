@@ -6,6 +6,25 @@ This document records all notable changes to the Docflow Python SDK.
 
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), and versions follow [Semantic Versioning](https://semver.org/).
 
+## [1.1.1] - 2026-07-22
+
+### Added
+
+- 🌐 Added bilingual Chinese and English project documentation, quick-start guides, and complete code examples.
+- 🧩 Added forward-compatible response models that preserve API fields not yet declared by the SDK:
+  - Unknown fields are accessible through `extra_fields` or an attribute with the original name.
+  - The mechanism covers top-level and nested responses for file and review resources.
+
+### Changed
+
+- 📄 Aligned `FileInfo` with the API `FileDetailInfo` schema by adding `parsedDetail`, `child_files`, and `parser_params`.
+- 🔤 Changed `FileInfo.failure_causes` from `List[str]` to `str`.
+
+### Fixed
+
+- 🐛 Fixed `TypeError` crashes in `file.upload()`, `file.upload_sync()`, `file.fetch()`, `file.iter()`, and `file.extract_fields()` when the API returns newly added fields.
+- 🛡️ Fixed the same forward-compatibility risk in file update/deletion responses and review repository, group, and rule responses.
+
 ## [1.1.0] - 2026-07-02
 
 ### Added
