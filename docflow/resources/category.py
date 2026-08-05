@@ -4,7 +4,7 @@
 import json
 import os
 import re
-from typing import List, Optional, Union, BinaryIO, Dict, Any, Tuple
+from typing import List, Optional, Union, BinaryIO, Dict, Any, Tuple, Mapping
 from urllib.parse import unquote
 
 from .base import BaseResource
@@ -22,6 +22,8 @@ from ..models.category import (
     BatchFieldAddResponse,
     BatchTableAddResponse,
     BatchSampleUploadResponse,
+    CategoryKeywordRules,
+    CategoryKeywordRuleGroup,
 )
 from ..utils.file_handler import FileHandler
 from ..enums import ExtractModel, EnabledStatus, EnabledFlag, FieldType
@@ -29,6 +31,177 @@ from .._constants import DEFAULT_PAGE, DEFAULT_PAGE_SIZE, API_PREFIX
 
 # 合法的抽取模型取值集合：新命名 Auto/Acgpt/Acgpt-VL/DF-M1 + 兼容旧命名 Model 1/2/3
 _VALID_EXTRACT_MODELS = frozenset(m.value for m in ExtractModel)
+# Keep this deliberately aligned with the Java signature builder:
+# [\\s\\u3000\\u200B-\\u200D\\uFEFF].  Python's ``\\s`` accepts additional
+# Unicode whitespace characters, so spell out Java's default whitespace set.
+_KEYWORD_WHITESPACE_RE = re.compile(r"[ \t\n\r\f\v\u3000\u200b-\u200d\ufeff]+")
+
+
+def _normalize_keyword(keyword: str) -> str:
+    """Normalize keywords exactly as category keyword rule comparisons require."""
+    return _KEYWORD_WHITESPACE_RE.sub("", keyword).lower()
+
+
+def _keyword_rules_to_dict(
+    rules: Union[CategoryKeywordRules, Mapping[str, Any]],
+) -> Dict[str, Any]:
+    if isinstance(rules, CategoryKeywordRules):
+        return rules.to_dict()
+    if isinstance(rules, Mapping):
+        return dict(rules)
+    raise ValidationError("category_keyword_rules 必须是规则对象")
+
+
+def validate_category_keyword_rules(
+    rules: Union[CategoryKeywordRules, Mapping[str, Any]],
+) -> Dict[str, Any]:
+    """Validate and canonicalize category keyword rules before sending them.
+
+    The API accepts a complete object only.  In particular, ``{}`` is invalid;
+    the explicit ``{\"positive_rules\": [], \"negative_rules\": []}`` value is
+    the only supported way to clear an existing rule configuration.
+    """
+    value = _keyword_rules_to_dict(rules)
+    if set(value) != {"positive_rules", "negative_rules"}:
+        raise ValidationError(
+            "category_keyword_rules 必须同时包含 positive_rules 和 negative_rules"
+        )
+
+    positive_rules = value["positive_rules"]
+    negative_rules = value["negative_rules"]
+    if not isinstance(positive_rules, list) or not isinstance(negative_rules, list):
+        raise ValidationError("category_keyword_rules 的正向和反向规则必须是数组")
+    if len(positive_rules) > 10:
+        raise ValidationError("正向关键词规则组不能超过 10 个")
+    if len(negative_rules) > 1:
+        raise ValidationError("反向关键词规则组不能超过 1 个")
+
+    canonical = {"positive_rules": [], "negative_rules": []}
+    all_positive_words = set()
+    all_negative_words = set()
+
+    def validate_groups(groups: List[Any], direction: str) -> List[Dict[str, Any]]:
+        seen_signatures = set()
+        normalized_groups = []
+        for index, group in enumerate(groups):
+            if isinstance(group, CategoryKeywordRuleGroup):
+                group = group.to_dict()
+            if not isinstance(group, Mapping):
+                raise ValidationError("关键词规则组必须是对象")
+            required_keys = {"min_hit", "words"}
+            allowed_keys = required_keys | {"group_name"}
+            if not required_keys.issubset(group) or set(group) - allowed_keys:
+                raise ValidationError("关键词规则组必须包含 min_hit 和 words，且不能包含未知字段")
+
+            group_name = group.get("group_name")
+            words = group["words"]
+            min_hit = group["min_hit"]
+            if group_name is None:
+                group_name = f"group_{index + 1}" if direction == "positive" else "exclude"
+            elif not isinstance(group_name, str) or not group_name.strip():
+                raise ValidationError("关键词规则组名称不能为空")
+            if not isinstance(words, list) or not words:
+                raise ValidationError("关键词规则组至少需要一个关键词")
+            if len(words) > 20:
+                raise ValidationError("每个关键词规则组不能超过 20 个关键词")
+            if not isinstance(min_hit, int) or isinstance(min_hit, bool):
+                raise ValidationError("min_hit 必须是整数")
+
+            normalized_words = []
+            seen_words = set()
+            for word in words:
+                if not isinstance(word, str):
+                    raise ValidationError("关键词必须是字符串")
+                normalized_word = _normalize_keyword(word)
+                if not normalized_word:
+                    raise ValidationError("关键词不能为空")
+                if len(normalized_word) > 50:
+                    raise ValidationError("关键词长度不能超过 50 个字符")
+                if normalized_word in seen_words:
+                    raise ValidationError("同一规则组内不能包含重复关键词")
+                seen_words.add(normalized_word)
+                normalized_words.append(normalized_word)
+
+            if not 1 <= min_hit <= len(normalized_words):
+                raise ValidationError("min_hit 必须在 1 到关键词数量之间")
+            signature = (min_hit, tuple(sorted(normalized_words)))
+            if signature in seen_signatures:
+                raise ValidationError("同一方向不能包含重复的关键词规则组")
+            seen_signatures.add(signature)
+            normalized_groups.append({
+                "group_name": group_name.strip(),
+                "min_hit": min_hit,
+                "words": normalized_words,
+            })
+            if direction == "positive":
+                all_positive_words.update(normalized_words)
+            else:
+                all_negative_words.update(normalized_words)
+        return normalized_groups
+
+    canonical["positive_rules"] = validate_groups(positive_rules, "positive")
+    canonical["negative_rules"] = validate_groups(negative_rules, "negative")
+    if all_positive_words & all_negative_words:
+        raise ValidationError("正向和反向关键词规则不能包含相同关键词")
+    return canonical
+
+
+def _rule_group_signature(group: Any) -> Optional[Tuple[int, Tuple[str, ...]]]:
+    """Return the same min-hit/keyword-set signature used by the API service.
+
+    Existing categories can contain historical rules that predate the SDK's
+    stricter request validation, so this helper intentionally mirrors the
+    service's tolerant signature calculation rather than validating them.
+    """
+    if isinstance(group, CategoryKeywordRuleGroup):
+        group = group.to_dict()
+    if not isinstance(group, Mapping) or not isinstance(group.get("words"), list):
+        return None
+    words = {
+        _normalize_keyword(word)
+        for word in group["words"]
+        if isinstance(word, str) and _normalize_keyword(word)
+    }
+    if not words:
+        return None
+    min_hit = group.get("min_hit", group.get("minHit", 1))
+    if not isinstance(min_hit, int) or isinstance(min_hit, bool):
+        min_hit = 1
+    return max(1, min(min_hit, len(words))), tuple(sorted(words))
+
+
+def _conflicting_category_names(
+    candidate_rules: Mapping[str, Any],
+    categories: List[Any],
+    excluded_category_id: Optional[str] = None,
+) -> List[str]:
+    """Find same-type rule group conflicts in enabled categories."""
+    conflicts = []
+    for direction, response_key in (("positive_rules", "positive_rules"),
+                                    ("negative_rules", "negative_rules")):
+        candidate_signatures = {
+            _rule_group_signature(group)
+            for group in candidate_rules[direction]
+        }
+        candidate_signatures.discard(None)
+        if not candidate_signatures:
+            continue
+        for category in categories:
+            category_id = str(getattr(category, "id", ""))
+            if excluded_category_id is not None and category_id == str(excluded_category_id):
+                continue
+            rules = getattr(category, "category_keyword_rules", None)
+            if rules is None:
+                continue
+            rules_dict = rules.to_dict() if isinstance(rules, CategoryKeywordRules) else rules
+            if not isinstance(rules_dict, Mapping):
+                continue
+            groups = rules_dict.get(response_key, [])
+            if any(_rule_group_signature(group) in candidate_signatures for group in groups):
+                name = getattr(category, "name", None) or category_id
+                if name not in conflicts:
+                    conflicts.append(name)
+    return conflicts
 
 
 class CategoryResource(BaseResource):
@@ -64,6 +237,27 @@ class CategoryResource(BaseResource):
         self.fields = CategoryFieldResource(http_client)
         self.samples = CategorySampleResource(http_client)
 
+    def _validate_keyword_rule_conflicts(
+        self,
+        workspace_id: str,
+        rules: Mapping[str, Any],
+        category_id: Optional[str] = None,
+    ) -> None:
+        """Preflight enabled categories page by page before a write request.
+
+        The server remains authoritative because another caller can change a
+        category after this check and before the create/update request.
+        """
+        conflicts = _conflicting_category_names(
+            rules,
+            list(self.iter(workspace_id, page_size=100, enabled=EnabledStatus.ENABLED)),
+            excluded_category_id=category_id,
+        )
+        if conflicts:
+            raise ValidationError(
+                "关键词规则与已启用类别冲突：" + "、".join(conflicts)
+            )
+
     def create(
         self,
         workspace_id: str,
@@ -74,6 +268,8 @@ class CategoryResource(BaseResource):
         category_prompt: Optional[str] = None,
         tables: Optional[List[Dict[str, Any]]] = None,
         with_detail: Optional[bool] = None,
+        category_keyword_rules: Optional[Union[CategoryKeywordRules, Mapping[str, Any]]] = None,
+        check_keyword_rule_conflicts: bool = True,
     ) -> CategoryCreateResponse:
         """
         创建文件类别
@@ -89,6 +285,10 @@ class CategoryResource(BaseResource):
                     {"name": "金额", "description": "发票总金额"}
                 ]
             category_prompt: 类别提示（最大 150 字符，可选）
+            category_keyword_rules: 分类关键词规则（可选）。传入时必须同时包含
+                positive_rules 和 negative_rules；每个关键词会忽略空白并转小写。
+            check_keyword_rule_conflicts: 是否在请求前分页读取已启用类别并预检跨类别
+                同类型规则组冲突，默认 True。服务器始终会再次校验。
             tables: 表格配置列表（可选，支持一站式创建），每项可含 name/prompt/extract_model/collect_from_multi_table/fields[]，例如:
                 [
                     {
@@ -177,6 +377,12 @@ class CategoryResource(BaseResource):
                 i18n_key='error.category.prompt_too_long'
             )
 
+        normalized_keyword_rules = None
+        if category_keyword_rules is not None:
+            normalized_keyword_rules = validate_category_keyword_rules(category_keyword_rules)
+            if check_keyword_rule_conflicts:
+                self._validate_keyword_rule_conflicts(workspace_id, normalized_keyword_rules)
+
         # 准备 multipart/form-data 表单数据
         data = {
             "workspace_id": workspace_id,
@@ -187,6 +393,9 @@ class CategoryResource(BaseResource):
 
         if category_prompt:
             data["category_prompt"] = category_prompt
+
+        if normalized_keyword_rules is not None:
+            data["category_keyword_rules"] = json.dumps(normalized_keyword_rules, ensure_ascii=False)
 
         if tables:
             data["tables"] = json.dumps(tables, ensure_ascii=False)
@@ -287,6 +496,8 @@ class CategoryResource(BaseResource):
         enabled: Optional[Union[EnabledFlag, int]] = None,
         extract_model: Optional[Union[ExtractModel, str]] = None,
         with_detail: Optional[bool] = None,
+        category_keyword_rules: Optional[Union[CategoryKeywordRules, Mapping[str, Any]]] = None,
+        check_keyword_rule_conflicts: bool = True,
         **kwargs,
     ) -> Optional[Dict[str, Any]]:
         """
@@ -297,6 +508,10 @@ class CategoryResource(BaseResource):
             category_id: 类别 ID
             name: 新的类别名称（可选）
             category_prompt: 新的类别提示（可选）
+            category_keyword_rules: 新的完整分类关键词规则。省略或传 None 时不修改；
+                传 {"positive_rules": [], "negative_rules": []} 时清空。
+            check_keyword_rule_conflicts: 是否在请求前分页读取已启用类别并预检跨类别
+                同类型规则组冲突，默认 True。服务器始终会再次校验。
             enabled: 启用状态（EnabledFlag.DISABLED=0 或 EnabledFlag.ENABLED=1，可选）
             extract_model: 提取模型（ExtractModel.Auto/Acgpt/Acgpt_VL/DF_M1，可选）
             **kwargs: 其他要更新的字段
@@ -345,6 +560,14 @@ class CategoryResource(BaseResource):
                     i18n_key='error.category.prompt_too_long'
                 )
             payload["category_prompt"] = category_prompt
+
+        if category_keyword_rules is not None:
+            normalized_keyword_rules = validate_category_keyword_rules(category_keyword_rules)
+            if check_keyword_rule_conflicts:
+                self._validate_keyword_rule_conflicts(
+                    workspace_id, normalized_keyword_rules, category_id=category_id
+                )
+            payload["category_keyword_rules"] = normalized_keyword_rules
 
         if extract_model is not None:
             # 支持 ExtractModel 枚举和 str 类型

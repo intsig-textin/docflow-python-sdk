@@ -13,6 +13,8 @@ from .category import (
     CategoryInfo,
     CategoryCreateResponse,
     CategoryListResponse,
+    CategoryKeywordRuleGroup,
+    CategoryKeywordRules,
     # 表格模型
     TableInfo,
     TableListResponse,
@@ -65,6 +67,8 @@ __all__ = [
     "CategoryInfo",
     "CategoryCreateResponse",
     "CategoryListResponse",
+    "CategoryKeywordRuleGroup",
+    "CategoryKeywordRules",
     # Table models
     "TableInfo",
     "TableListResponse",

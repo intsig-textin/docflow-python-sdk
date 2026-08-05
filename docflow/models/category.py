@@ -18,6 +18,54 @@ def _get_first(data: Dict[str, Any], *keys):
 # ==================== 类别模型 ====================
 
 @dataclass
+class CategoryKeywordRuleGroup:
+    """一个分类关键词规则组。
+
+    ``group_name`` 是可选的展示/追踪名称，不参与规则命中或冲突判断。通过 SDK
+    新建规则时若省略它，会在提交前自动生成前端兼容的名称。
+    """
+    group_name: Optional[str] = None
+    min_hit: int = 1
+    words: List[str] = field(default_factory=list)
+
+    @classmethod
+    def from_dict(cls, data: Dict[str, Any]) -> "CategoryKeywordRuleGroup":
+        return cls(
+            group_name=data.get("group_name") if "group_name" in data else data.get("groupName"),
+            min_hit=data.get("min_hit") if "min_hit" in data else data.get("minHit"),
+            words=data.get("words") or [],
+        )
+
+    def to_dict(self) -> Dict[str, Any]:
+        return {
+            "group_name": self.group_name,
+            "min_hit": self.min_hit,
+            "words": self.words,
+        }
+
+
+@dataclass
+class CategoryKeywordRules:
+    """分类关键词规则，分别包含正向和反向规则组。"""
+    positive_rules: List[CategoryKeywordRuleGroup] = field(default_factory=list)
+    negative_rules: List[CategoryKeywordRuleGroup] = field(default_factory=list)
+
+    @classmethod
+    def from_dict(cls, data: Dict[str, Any]) -> "CategoryKeywordRules":
+        return cls(
+            positive_rules=[CategoryKeywordRuleGroup.from_dict(group)
+                            for group in data.get("positive_rules", data.get("positiveRules", []))],
+            negative_rules=[CategoryKeywordRuleGroup.from_dict(group)
+                            for group in data.get("negative_rules", data.get("negativeRules", []))],
+        )
+
+    def to_dict(self) -> Dict[str, Any]:
+        return {
+            "positive_rules": [group.to_dict() for group in self.positive_rules],
+            "negative_rules": [group.to_dict() for group in self.negative_rules],
+        }
+
+@dataclass
 class CategoryInfo:
     """
     类别信息
@@ -27,6 +75,7 @@ class CategoryInfo:
     name: str
     description: Optional[str] = None   # 分类描述
     category_prompt: Optional[str] = None  # 用于分类的提示词
+    category_keyword_rules: Optional[CategoryKeywordRules] = None
     extract_model: Optional[str] = None  # 抽取模型：Auto/Acgpt/Acgpt-VL/DF-M1/mixed（旧名 Model 1/2/3 兼容）
     enabled: Optional[int] = None  # 启用状态：0-禁用，1-启用，2-草稿
 
@@ -38,6 +87,10 @@ class CategoryInfo:
             name=data.get("name"),
             description=data.get("description"),
             category_prompt=data.get("category_prompt") or data.get("categoryPrompt"),
+            category_keyword_rules=(CategoryKeywordRules.from_dict(data["category_keyword_rules"])
+                                    if data.get("category_keyword_rules") is not None else
+                                    (CategoryKeywordRules.from_dict(data["categoryKeywordRules"])
+                                     if data.get("categoryKeywordRules") is not None else None)),
             extract_model=data.get("extract_model") or data.get("extractModel"),
             enabled=data.get("enabled"),
         )
@@ -55,6 +108,7 @@ class CategoryCreateResponse:
     name: Optional[str] = None
     description: Optional[str] = None
     category_prompt: Optional[str] = None
+    category_keyword_rules: Optional[CategoryKeywordRules] = None
     extract_model: Optional[str] = None
     enabled: Optional[int] = None
     fields: Optional[List["FieldInfo"]] = None
@@ -73,6 +127,10 @@ class CategoryCreateResponse:
             name=data.get("name"),
             description=data.get("description"),
             category_prompt=data.get("category_prompt") or data.get("categoryPrompt"),
+            category_keyword_rules=(CategoryKeywordRules.from_dict(data["category_keyword_rules"])
+                                    if data.get("category_keyword_rules") is not None else
+                                    (CategoryKeywordRules.from_dict(data["categoryKeywordRules"])
+                                     if data.get("categoryKeywordRules") is not None else None)),
             extract_model=data.get("extract_model") or data.get("extractModel"),
             enabled=data.get("enabled"),
             fields=[FieldInfo.from_dict(f) for f in fields_data] if fields_data else None,

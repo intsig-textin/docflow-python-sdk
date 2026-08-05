@@ -4,7 +4,7 @@ Docflow Python SDK
 Docflow Python SDK，提供简洁易用的 API 接口
 """
 
-__version__ = "1.1.1"
+__version__ = "1.1.2rc1"
 
 from .client import DocflowClient
 from .exceptions import (
@@ -27,6 +27,7 @@ from .enums import (
     ReviewModel,
     RecognitionStatus,
 )
+from .models.category import CategoryKeywordRuleGroup, CategoryKeywordRules
 
 __all__ = [
     "DocflowClient",
@@ -49,4 +50,6 @@ __all__ = [
     "MismatchAction",
     "ReviewModel",
     "RecognitionStatus",
+    "CategoryKeywordRuleGroup",
+    "CategoryKeywordRules",
 ]

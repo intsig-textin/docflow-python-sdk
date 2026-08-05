@@ -5,6 +5,19 @@ import pytest
 from unittest.mock import patch, MagicMock
 from docflow import DocflowClient, ExtractModel, set_language
 from docflow.exceptions import ValidationError, APIError
+from docflow.models.category import CategoryKeywordRuleGroup, CategoryKeywordRules
+from docflow.resources.category import validate_category_keyword_rules
+
+
+def _keyword_rules():
+    return {
+        "positive_rules": [{
+            "group_name": "发票要素",
+            "min_hit": 1,
+            "words": [" 发票　号码 ", "价税合计"],
+        }],
+        "negative_rules": [],
+    }
 
 
 def test_category_list_validation(client):
@@ -54,6 +67,44 @@ def test_category_list_success(client, mock_workspace_id, mock_category_data):
         assert len(result.categories) == 2
         assert result.total == 2
         assert result.page == 1
+
+
+def test_category_list_deserializes_keyword_rules(client, mock_workspace_id):
+    """列表响应中的关键字规则应被解析为 SDK 模型。"""
+    mock_response = {
+        "code": 200,
+        "msg": "success",
+        "result": {
+            "categories": [{
+                "category_id": "456789",
+                "workspace_id": mock_workspace_id,
+                "name": "带关键字规则的类别",
+                "extract_model": "standard",
+                "enabled": 1,
+                "category_keyword_rules": {
+                    "positive_rules": [{
+                        "group_name": "发票要素",
+                        "min_hit": 1,
+                        "words": ["发票号码", "价税合计"],
+                    }],
+                    "negative_rules": [],
+                },
+            }],
+            "total": 1,
+            "page": 1,
+            "page_size": 10,
+        },
+    }
+
+    with patch.object(client.http_client, "get", return_value=mock_response):
+        result = client.category.list(workspace_id=mock_workspace_id)
+
+    rules = result.categories[0].category_keyword_rules
+    assert rules is not None
+    assert rules.positive_rules[0].group_name == "发票要素"
+    assert rules.positive_rules[0].min_hit == 1
+    assert rules.positive_rules[0].words == ["发票号码", "价税合计"]
+    assert rules.negative_rules == []
 
 
 def test_category_create_validation(client):
@@ -129,6 +180,26 @@ def test_category_create_success(client, mock_workspace_id, mock_category_data):
             assert result.category_id == mock_category_data["id"]
 
 
+def test_category_create_sends_keyword_rules_as_multipart_json(client, mock_workspace_id):
+    response = {"code": 200, "msg": "success", "result": {"categoryId": "456"}}
+    with patch('docflow.utils.file_handler.FileHandler.prepare_files', return_value=[]):
+        with patch.object(client.http_client, 'request', return_value=response) as request:
+            client.category.create(
+                workspace_id=mock_workspace_id,
+                name="新类别",
+                extract_model=ExtractModel.Model_1,
+                sample_files=["invoice.pdf"],
+                fields=[{"name": "发票号码"}],
+                category_keyword_rules=_keyword_rules(),
+                check_keyword_rule_conflicts=False,
+            )
+    data = request.call_args.kwargs["data"]
+    assert data["category_keyword_rules"] == (
+        '{"positive_rules": [{"group_name": "发票要素", "min_hit": 1, '
+        '"words": ["发票号码", "价税合计"]}], "negative_rules": []}'
+    )
+
+
 def test_category_update_validation(client):
     """测试类别更新参数校验"""
     # 测试空工作空间 ID
@@ -167,6 +238,178 @@ def test_category_update_success(client, mock_workspace_id, mock_category_id):
 
         # update 方法返回 None，只验证没有抛出异常
         assert result is None
+
+
+def test_category_update_sends_keyword_rules_and_explicit_clear(client, mock_workspace_id, mock_category_id):
+    response = {"code": 200, "msg": "success", "result": {}}
+    with patch.object(client.http_client, 'post', return_value=response) as post:
+        client.category.update(
+            workspace_id=mock_workspace_id,
+            category_id=mock_category_id,
+            category_keyword_rules={"positive_rules": [], "negative_rules": []},
+            check_keyword_rule_conflicts=False,
+        )
+    assert post.call_args.kwargs["json_data"]["category_keyword_rules"] == {
+        "positive_rules": [], "negative_rules": []
+    }
+
+
+def test_category_update_omits_none_keyword_rules(client, mock_workspace_id, mock_category_id):
+    response = {"code": 200, "msg": "success", "result": {}}
+    with patch.object(client.http_client, 'post', return_value=response) as post:
+        client.category.update(
+            workspace_id=mock_workspace_id,
+            category_id=mock_category_id,
+            category_keyword_rules=None,
+        )
+    assert "category_keyword_rules" not in post.call_args.kwargs["json_data"]
+
+
+def test_category_keyword_rule_precheck_uses_enabled_pages_and_excludes_self(
+        client, mock_workspace_id, mock_category_id):
+    """Precheck must page through enabled categories, ignore the updated category, and fail on others."""
+    first_page = {
+        "code": 200, "msg": "success", "result": {
+            "categories": [{
+                "id": mock_category_id, "name": "自身", "enabled": 1,
+                "category_keyword_rules": _keyword_rules(),
+            }], "total": 101, "page": 1, "page_size": 100,
+        },
+    }
+    second_page = {
+        "code": 200, "msg": "success", "result": {
+            "categories": [{
+                "id": "999", "name": "冲突类别", "enabled": 1,
+                "category_keyword_rules": _keyword_rules(),
+            }], "total": 101, "page": 2, "page_size": 100,
+        },
+    }
+    with patch.object(client.http_client, "get", side_effect=[first_page, second_page]) as get:
+        with pytest.raises(ValidationError, match="冲突类别"):
+            client.category._validate_keyword_rule_conflicts(
+                mock_workspace_id, validate_category_keyword_rules(_keyword_rules()), mock_category_id
+            )
+    assert get.call_count == 2
+
+
+def test_category_keyword_rule_precheck_can_be_disabled(client, mock_workspace_id):
+    response = {"code": 200, "msg": "success", "result": {"categoryId": "456"}}
+    with patch('docflow.utils.file_handler.FileHandler.prepare_files', return_value=[]):
+        with patch.object(client.http_client, "request", return_value=response):
+            client.category.create(
+                workspace_id=mock_workspace_id,
+                name="新类别",
+                extract_model=ExtractModel.Model_1,
+                sample_files=["invoice.pdf"],
+                fields=[{"name": "发票号码"}],
+                category_keyword_rules=_keyword_rules(),
+                check_keyword_rule_conflicts=False,
+            )
+
+
+@pytest.mark.parametrize("rules", [
+    {},
+    {"positive_rules": []},
+    {"positive_rules": "not-a-list", "negative_rules": []},
+    {"positive_rules": [{}], "negative_rules": []},
+    {"positive_rules": [{"group_name": "g", "min_hit": 1, "words": ["a", " a "]}], "negative_rules": []},
+    {"positive_rules": [{"group_name": "g", "min_hit": 2, "words": ["a"]}], "negative_rules": []},
+    {"positive_rules": [{"group_name": "g", "min_hit": 1, "words": ["a"]}],
+     "negative_rules": [{"group_name": "n", "min_hit": 1, "words": ["Ａ"]},
+                        {"group_name": "n2", "min_hit": 1, "words": ["b"]}]},
+])
+def test_category_keyword_rules_invalid(rules):
+    with pytest.raises(ValidationError):
+        validate_category_keyword_rules(rules)
+
+
+@pytest.mark.parametrize(("rules", "message"), [
+    ({"positive_rules": [{"group_name": "g", "min_hit": 1, "words": [" 　\u200b"]}], "negative_rules": []}, "关键词不能为空"),
+    ({"positive_rules": [{"group_name": "g", "min_hit": 1, "words": ["a" * 51]}], "negative_rules": []}, "关键词长度不能超过 50 个字符"),
+    ({"positive_rules": [{"group_name": "  ", "min_hit": 1, "words": ["a"]}], "negative_rules": []}, "规则组名称不能为空"),
+    ({"positive_rules": [{"group_name": "g", "min_hit": True, "words": ["a"]}], "negative_rules": []}, "min_hit 必须是整数"),
+    ({"positive_rules": [{"group_name": "g", "min_hit": 1, "words": [1]}], "negative_rules": []}, "关键词必须是字符串"),
+    ({"positive_rules": [{"group_name": "g", "min_hit": 1, "words": ["a" for _ in range(21)]}], "negative_rules": []}, "每个关键词规则组不能超过 20 个关键词"),
+    ({"positive_rules": [{"group_name": str(i), "min_hit": 1, "words": [str(i)]} for i in range(11)], "negative_rules": []}, "正向关键词规则组不能超过 10 个"),
+    ({"positive_rules": [], "negative_rules": [
+        {"group_name": "n1", "min_hit": 1, "words": ["a"]},
+        {"group_name": "n2", "min_hit": 1, "words": ["b"]},
+    ]}, "反向关键词规则组不能超过 1 个"),
+    ({"positive_rules": [{"group_name": "g", "min_hit": 1, "words": ["a"], "extra": "x"}], "negative_rules": []}, "不能包含未知字段"),
+])
+def test_category_keyword_rules_invalid_boundary_messages(rules, message):
+    """每个开放规则约束都应在网络请求前给出明确错误。"""
+    with pytest.raises(ValidationError, match=message):
+        validate_category_keyword_rules(rules)
+
+
+def test_category_create_invalid_keyword_rules_does_not_send_request(client, mock_workspace_id):
+    """SDK 本地校验失败时不得向服务端发起 multipart 创建请求。"""
+    invalid_rules = {"positive_rules": [], "negative_rules": [{
+        "group_name": "n", "min_hit": 0, "words": ["invoice"],
+    }]}
+
+    with patch('docflow.utils.file_handler.FileHandler.prepare_files', return_value=[]):
+        with patch.object(client.http_client, "request") as request:
+            with pytest.raises(ValidationError, match="min_hit 必须在 1 到关键词数量之间"):
+                client.category.create(
+                    workspace_id=mock_workspace_id,
+                    name="异常规则类别",
+                    extract_model=ExtractModel.Model_1,
+                    sample_files=["invoice.pdf"],
+                    fields=[{"name": "发票号码"}],
+                    category_keyword_rules=invalid_rules,
+                    check_keyword_rule_conflicts=False,
+                )
+    request.assert_not_called()
+
+
+def test_category_keyword_rules_normalization_and_conflicts():
+    assert validate_category_keyword_rules(_keyword_rules())["positive_rules"][0]["words"] == [
+        "发票号码", "价税合计"
+    ]
+    with pytest.raises(ValidationError, match="正向和反向"):
+        validate_category_keyword_rules({
+            "positive_rules": [{"group_name": "p", "min_hit": 1, "words": ["发票 号码"]}],
+            "negative_rules": [{"group_name": "n", "min_hit": 1, "words": ["发票　号码"]}],
+        })
+    with pytest.raises(ValidationError, match="重复的关键词规则组"):
+        validate_category_keyword_rules({
+            "positive_rules": [
+                {"group_name": "p1", "min_hit": 1, "words": ["a", "b"]},
+                {"group_name": "p2", "min_hit": 1, "words": [" b", "a "]},
+            ],
+            "negative_rules": [],
+        })
+
+
+def test_category_keyword_rules_generate_default_group_names():
+    """SDK 可省略展示名称，并生成与前端默认值一致的名称。"""
+    rules = validate_category_keyword_rules({
+        "positive_rules": [
+            {"min_hit": 1, "words": ["invoice"]},
+            {"min_hit": 1, "words": ["contract"]},
+        ],
+        "negative_rules": [{"min_hit": 1, "words": ["receipt"]}],
+    })
+
+    assert [group["group_name"] for group in rules["positive_rules"]] == ["group_1", "group_2"]
+    assert rules["negative_rules"][0]["group_name"] == "exclude"
+
+
+def test_category_keyword_rule_model_can_omit_group_name():
+    rules = CategoryKeywordRules(
+        positive_rules=[CategoryKeywordRuleGroup(min_hit=1, words=["invoice"])],
+    )
+    assert validate_category_keyword_rules(rules)["positive_rules"][0]["group_name"] == "group_1"
+
+
+def test_category_keyword_rules_accept_models():
+    rules = CategoryKeywordRules(
+        positive_rules=[CategoryKeywordRuleGroup("p", 1, [" A "])],
+        negative_rules=[],
+    )
+    assert validate_category_keyword_rules(rules)["positive_rules"][0]["words"] == ["a"]
 
 
 def test_category_delete_validation(client):
