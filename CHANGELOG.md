@@ -6,6 +6,12 @@
 
 格式基于 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)，
 版本号遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
+## [1.1.2rc1] - 2026-08-05
+
+### Changed
+
+- `category.create/update`支持传入category_key_rules，用于设置类别关键字
+- `category.list`返回结果中包含设置/更新成功的类别关键字。
 
 ## [1.1.1] - 2026-07-22
 
