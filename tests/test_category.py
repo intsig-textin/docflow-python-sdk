@@ -310,6 +310,7 @@ def test_category_keyword_rule_precheck_can_be_disabled(client, mock_workspace_i
 @pytest.mark.parametrize("rules", [
     {},
     {"positive_rules": []},
+    {"negative_rules": []},
     {"positive_rules": "not-a-list", "negative_rules": []},
     {"positive_rules": [{}], "negative_rules": []},
     {"positive_rules": [{"group_name": "g", "min_hit": 1, "words": ["a", " a "]}], "negative_rules": []},
@@ -361,6 +362,23 @@ def test_category_create_invalid_keyword_rules_does_not_send_request(client, moc
                     category_keyword_rules=invalid_rules,
                     check_keyword_rule_conflicts=False,
                 )
+    request.assert_not_called()
+
+
+@pytest.mark.parametrize("invalid_rules", ["{invalid", "   ", {}, {"positive_rules": []}, {"negative_rules": []}])
+def test_category_create_malformed_keyword_rules_does_not_send_request(client, mock_workspace_id, invalid_rules):
+    """SDK 对不可构成完整规则对象的输入应在本地失败。"""
+    with patch.object(client.http_client, "request") as request:
+        with pytest.raises(ValidationError):
+            client.category.create(
+                workspace_id=mock_workspace_id,
+                name="异常规则类别",
+                extract_model=ExtractModel.Model_1,
+                sample_files=["invoice.pdf"],
+                fields=[{"name": "发票号码"}],
+                category_keyword_rules=invalid_rules,
+                check_keyword_rule_conflicts=False,
+            )
     request.assert_not_called()
 
 
