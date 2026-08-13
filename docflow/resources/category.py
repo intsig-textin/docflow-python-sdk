@@ -569,6 +569,7 @@ class CategoryResource(BaseResource):
                 )
             payload["category_keyword_rules"] = normalized_keyword_rules
 
+
         if extract_model is not None:
             # 支持 ExtractModel 枚举和 str 类型
             extract_model_value = extract_model.value if isinstance(extract_model, ExtractModel) else extract_model
