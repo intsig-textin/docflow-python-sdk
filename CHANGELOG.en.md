@@ -6,6 +6,24 @@ This document records all notable changes to the Docflow Python SDK.
 
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), and versions follow [Semantic Versioning](https://semver.org/).
 
+## [Unreleased] - 2026-08-13
+
+### Added
+
+- 🌐 Added `client.file.translate()` for translating regular fields, tables, stamps, and
+  handwriting by task. Omitting `source_language` or sending an empty string enables automatic
+  detection; `open_translate=0` disables translated-result display.
+- 🖼️ Added `task_id` and `with_image_url` to `client.file.fetch()` and `client.file.iter()`.
+  Snowflake task IDs remain strings end to end, and page image URLs are valid for 30 days.
+- 📦 Added `FileTranslateResponse` and typed models for all four translation result groups.
+
+### Compatibility
+
+- New `/file/fetch` fields such as `image_url` and `translated_*` continue to pass through the
+  forward-compatible models.
+- Existing table names remain `tableName`, not `table_name`; new parameters are appended to method
+  signatures so existing positional calls keep their original meaning.
+
 ## [1.1.1] - 2026-07-22
 
 ### Added

@@ -254,6 +254,35 @@ Primary resources:
 - `client.file`: file processing operations
 - `client.review`: review configuration and task operations
 
+### Fetch page images and translate recognition results
+
+```python
+# Keep Snowflake task IDs as strings. image_url values are valid for 30 days.
+files = client.file.fetch(
+    workspace_id="123",
+    task_id="1978297791713619968",
+    with_image_url=True,
+)
+
+# Omit source_language or send an empty string for automatic detection.
+translations = client.file.translate(
+    task_id="1978297791713619968",
+    source_language="",
+    target_language="en",
+)
+
+# Disable translated-result display without deleting stored translations.
+client.file.translate(
+    task_id="1978297791713619968",
+    target_language="en",
+    open_translate=0,
+)
+```
+
+Existing `/file/fetch` fields remain compatible: table names still use `tableName`, while new
+translation fields use the `translated_*` naming convention. Translation responses contain
+`fields`, `tables`, `stamps`, and `handwritings`.
+
 ### `WorkspaceResource`
 
 - `create()`: create a workspace

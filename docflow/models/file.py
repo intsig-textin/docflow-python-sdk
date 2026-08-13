@@ -64,6 +64,100 @@ class FileFetchResponse(ForwardCompatibleModel):
 
 
 @dataclass
+class FileTranslateField(ForwardCompatibleModel):
+    """普通字段或表格单元格翻译结果"""
+    key: Optional[str] = None
+    translated_key: Optional[str] = None
+    index: Optional[int] = None
+    value: Optional[str] = None
+
+
+@dataclass
+class FileTranslateTableHeader(ForwardCompatibleModel):
+    """表头翻译结果"""
+    key: Optional[str] = None
+    translated_key: Optional[str] = None
+
+
+@dataclass
+class FileTranslateTable(ForwardCompatibleModel):
+    """表格翻译结果"""
+    table_name: Optional[str] = None
+    translated_table_name: Optional[str] = None
+    items: List[List[FileTranslateField]] = field(default_factory=list)
+    item_headers: List[FileTranslateTableHeader] = field(default_factory=list)
+
+    def __post_init__(self):
+        """将嵌套表格结果转换为可访问的数据模型"""
+        self.items = [
+            [
+                FileTranslateField.from_dict(item) if isinstance(item, dict) else item
+                for item in (row or [])
+            ]
+            for row in (self.items or [])
+        ]
+        self.item_headers = [
+            FileTranslateTableHeader.from_dict(item) if isinstance(item, dict) else item
+            for item in (self.item_headers or [])
+        ]
+
+
+@dataclass
+class FileTranslateStamp(ForwardCompatibleModel):
+    """印章翻译结果"""
+    key: Optional[str] = None
+    page: Optional[int] = None
+    index: Optional[int] = None
+    stamp_prefix: Optional[str] = None
+    type_key: Optional[str] = None
+    type: Optional[str] = None
+    color_key: Optional[str] = None
+    color: Optional[str] = None
+    stamp_shape_key: Optional[str] = None
+    stamp_shape: Optional[str] = None
+    value_key: Optional[str] = None
+    value: Optional[str] = None
+
+
+@dataclass
+class FileTranslateHandwriting(ForwardCompatibleModel):
+    """手写体翻译结果"""
+    key: Optional[str] = None
+    page: Optional[int] = None
+    index: Optional[int] = None
+    handwriting_prefix: Optional[str] = None
+    text: Optional[str] = None
+
+
+@dataclass
+class FileTranslateResponse(ForwardCompatibleModel):
+    """文件翻译响应"""
+    fields: List[FileTranslateField] = field(default_factory=list)
+    tables: List[FileTranslateTable] = field(default_factory=list)
+    stamps: List[FileTranslateStamp] = field(default_factory=list)
+    handwritings: List[FileTranslateHandwriting] = field(default_factory=list)
+
+    def __post_init__(self):
+        """将四类翻译结果转换为对应的数据模型"""
+        self.fields = [
+            FileTranslateField.from_dict(item) if isinstance(item, dict) else item
+            for item in (self.fields or [])
+        ]
+        self.tables = [
+            FileTranslateTable.from_dict(item) if isinstance(item, dict) else item
+            for item in (self.tables or [])
+        ]
+        self.stamps = [
+            FileTranslateStamp.from_dict(item) if isinstance(item, dict) else item
+            for item in (self.stamps or [])
+        ]
+        self.handwritings = [
+            FileTranslateHandwriting.from_dict(item) if isinstance(item, dict) else item
+            for item in (self.handwritings or [])
+        ]
+
+
+@dataclass
 class FileUpdateInfo(ForwardCompatibleModel):
     """文件更新信息"""
     workspace_id: str

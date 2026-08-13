@@ -13,6 +13,22 @@
 - `category.create/update`支持传入category_key_rules，用于设置类别关键字
 - `category.list`返回结果中包含设置/更新成功的类别关键字。
 
+## [Unreleased] - 2026-08-13
+
+### Added
+
+- 🌐 新增 `client.file.translate()`，支持按任务翻译普通字段、表格、印章和手写体结果；
+  `source_language` 不传或为空时自动检测，`open_translate=0` 可关闭前端翻译展示。
+- 🖼️ `client.file.fetch()` 与 `client.file.iter()` 新增 `task_id`、`with_image_url` 参数；
+  雪花任务 ID 全程保持字符串，页面图片 URL 有效期为 30 天。
+- 📦 新增 `FileTranslateResponse` 及四类翻译结果模型。
+
+### Compatibility
+
+- `/file/fetch` 新增的 `image_url` 和 `translated_*` 字段继续通过前向兼容模型透传。
+- 原有表格名称字段保持 `tableName`，未改为 `table_name`；新增参数追加在方法签名末尾，
+  不改变历史位置参数调用语义。
+
 ## [1.1.1] - 2026-07-22
 
 ### Added

@@ -6,6 +6,7 @@ from .base import BaseResource
 from ..models.file import (
     FileUploadResponse,
     FileFetchResponse,
+    FileTranslateResponse,
     FileUpdateResponse,
     FileDeleteResponse
 )
@@ -344,6 +345,8 @@ class FileResource(BaseResource):
         end_time: Optional[str] = None,
         with_document: bool = False,
         with_task_detail_url: bool = False,
+        task_id: Optional[str] = None,
+        with_image_url: bool = False,
     ) -> FileFetchResponse:
         """
         获取文件处理结果列表
@@ -354,6 +357,7 @@ class FileResource(BaseResource):
             page_size: 每页数量，默认1000
             batch_number: 批次编号
             file_id: 文件ID
+            task_id: 任务ID，雪花ID必须使用字符串，避免精度丢失
             category: 文件类别
             recognition_status: 识别状态（0:待识别 1:识别成功 2:识别失败 3:分类中 4:抽取中 5:准备中）
             verification_status: 核对状态（0:待核对 2:已确认 3:已拒绝 4:已删除 5:推迟处理）
@@ -361,6 +365,7 @@ class FileResource(BaseResource):
             end_time: 结束时间（RFC3339格式）
             with_document: 是否返回文档的全部文字识别结果
             with_task_detail_url: 是否返回任务详情页URL
+            with_image_url: 是否返回每页图片URL，URL有效期为30天
 
         Returns:
             FileFetchResponse: 文件列表
@@ -371,6 +376,7 @@ class FileResource(BaseResource):
             "page_size": page_size,
             "with_document": with_document,
             "with_task_detail_url": with_task_detail_url,
+            "with_image_url": with_image_url,
         }
 
         # 添加可选过滤条件
@@ -378,6 +384,8 @@ class FileResource(BaseResource):
             params["batch_number"] = batch_number
         if file_id is not None:
             params["file_id"] = file_id
+        if task_id is not None:
+            params["task_id"] = task_id
         if category is not None:
             params["category"] = category
         if recognition_status is not None:
@@ -409,6 +417,8 @@ class FileResource(BaseResource):
         with_task_detail_url: bool = False,
         page_size: int = MAX_PAGE_SIZE,
         max_pages: Optional[int] = None,
+        task_id: Optional[str] = None,
+        with_image_url: bool = False,
     ) -> Iterator[Any]:
         """
         迭代获取所有文件
@@ -416,6 +426,7 @@ class FileResource(BaseResource):
         Args:
             workspace_id: 空间ID
             batch_number: 批次编号
+            task_id: 任务ID，雪花ID必须使用字符串
             category: 文件类别
             recognition_status: 识别状态（0:待识别 1:识别成功 2:识别失败 3:分类中 4:抽取中 5:准备中）
             verification_status: 核对状态
@@ -423,6 +434,7 @@ class FileResource(BaseResource):
             end_time: 结束时间
             with_document: 是否返回文档的全部文字识别结果
             with_task_detail_url: 是否返回任务详情页URL
+            with_image_url: 是否返回每页图片URL
             page_size: 每页数量
             max_pages: 最大页数（可选，用于限制）
 
@@ -439,6 +451,7 @@ class FileResource(BaseResource):
                 page=page,
                 page_size=page_size,
                 batch_number=batch_number,
+                task_id=task_id,
                 category=category,
                 recognition_status=recognition_status,
                 verification_status=verification_status,
@@ -446,6 +459,7 @@ class FileResource(BaseResource):
                 end_time=end_time,
                 with_document=with_document,
                 with_task_detail_url=with_task_detail_url,
+                with_image_url=with_image_url,
             )
 
             if not response.files:
@@ -459,6 +473,47 @@ class FileResource(BaseResource):
                 break
 
             page += 1
+
+    def translate(
+        self,
+        task_id: str,
+        target_language: str,
+        source_language: Optional[str] = None,
+        open_translate: int = 1,
+    ) -> FileTranslateResponse:
+        """翻译任务的字段、表格、印章和手写体识别结果。
+
+        Args:
+            task_id: 任务ID。雪花ID必须使用字符串，避免精度丢失。
+            target_language: 目标语言，使用 ISO 639-1 编码；中文使用 zh-CN/zh-TW。
+            source_language: 源语言；不传或传空字符串时自动检测。
+            open_translate: 翻译展示开关，1为开启并翻译，0为关闭展示；默认1。
+
+        Returns:
+            FileTranslateResponse: 四类翻译结果。
+
+        Raises:
+            ValidationError: 任务ID、目标语言或开关值不合法。
+        """
+        self._validate_id(task_id, "任务ID")
+        if not target_language or not target_language.strip():
+            raise ValidationError("目标语言不能为空")
+        if open_translate not in (0, 1):
+            raise ValidationError("open_translate 只能为0或1")
+
+        payload = {
+            "task_id": task_id,
+            "target_language": target_language,
+            "open_translate": open_translate,
+        }
+        if source_language is not None:
+            payload["source_language"] = source_language
+
+        response = self.http_client.post(
+            f"{API_PREFIX}/file/translate",
+            json_data=payload,
+        )
+        return FileTranslateResponse.from_dict(response["result"])
 
     def update(
         self,

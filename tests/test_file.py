@@ -23,6 +23,7 @@ def test_file_resource_has_methods(client):
     assert hasattr(client.file, 'batch_update')
     assert hasattr(client.file, 'delete')
     assert hasattr(client.file, 'extract_fields')
+    assert hasattr(client.file, 'translate')
     assert hasattr(client.file, 'retry')
     assert hasattr(client.file, 'amend_category')
 
@@ -39,6 +40,163 @@ def test_file_fetch_has_default_pagination(client):
     assert params['page'].default == 1
     assert 'page_size' in params
     assert params['page_size'].default == 1000
+
+    # 新增参数追加在签名末尾，避免破坏历史位置参数调用。
+    assert list(params)[-2:] == ['task_id', 'with_image_url']
+
+
+def test_file_fetch_supports_task_id_and_image_url(client, mock_workspace_id):
+    """测试任务ID保持字符串并透传图片URL开关及新增结果字段"""
+    task_id = "1978297791713619968"
+    mock_response = {
+        "code": 200,
+        "msg": "success",
+        "result": {
+            "total": 1,
+            "page": 1,
+            "page_size": 1000,
+            "files": [{
+                "id": "file_001",
+                "task_id": task_id,
+                "name": "invoice.pdf",
+                "format": "pdf",
+                "pages": [{"page": 0, "angle": 0, "width": 100, "height": 200,
+                           "image_url": "https://example.com/page.png"}],
+                "data": {
+                    "tables": [{"tableName": "items", "translated_table_name": "明细"}]
+                },
+            }],
+        },
+    }
+
+    with patch.object(client.http_client, 'get', return_value=mock_response) as mock_get:
+        result = client.file.fetch(
+            workspace_id=mock_workspace_id,
+            task_id=task_id,
+            with_image_url=True,
+        )
+
+    params = mock_get.call_args.kwargs["params"]
+    assert params["task_id"] == task_id
+    assert isinstance(params["task_id"], str)
+    assert params["with_image_url"] is True
+    assert result.files[0].pages[0]["image_url"] == "https://example.com/page.png"
+    assert result.files[0].data["tables"][0]["tableName"] == "items"
+    assert result.files[0].data["tables"][0]["translated_table_name"] == "明细"
+
+
+def test_file_iter_forwards_task_id_and_image_url(client, mock_workspace_id):
+    """测试迭代查询透传新增参数"""
+    with patch.object(client.file, 'fetch', return_value=MagicMock(files=[], total=0)) as mock_fetch:
+        list(client.file.iter(
+            workspace_id=mock_workspace_id,
+            task_id="1978297791713619968",
+            with_image_url=True,
+        ))
+
+    assert mock_fetch.call_args.kwargs["task_id"] == "1978297791713619968"
+    assert mock_fetch.call_args.kwargs["with_image_url"] is True
+
+
+def test_file_iter_keeps_existing_positional_parameter_order(client):
+    """测试新增参数不会改变历史位置参数顺序"""
+    import inspect
+    params = list(inspect.signature(client.file.iter).parameters)
+    assert params[-2:] == ["task_id", "with_image_url"]
+
+
+def test_file_translate_request_and_response(client):
+    """测试翻译接口最终请求与四类响应契约"""
+    task_id = "1978297791713619968"
+    mock_response = {
+        "code": 200,
+        "msg": "success",
+        "result": {
+            "fields": [{"key": "amount", "translated_key": "金额", "index": 0,
+                        "value": "一百"}],
+            "tables": [{
+                "table_name": "items",
+                "translated_table_name": "明细",
+                "items": [[{"key": "name", "translated_key": None, "index": 0,
+                            "value": "商品"}]],
+                "item_headers": [{"key": "name", "translated_key": "名称"}],
+            }],
+            "stamps": [{"key": "stamp-0-0", "page": 0, "index": 0,
+                        "value": "已盖章"}],
+            "handwritings": [{"key": "handwriting-0-0", "page": 0, "index": 0,
+                              "text": "签名"}],
+        },
+    }
+
+    with patch.object(client.http_client, 'post', return_value=mock_response) as mock_post:
+        result = client.file.translate(
+            task_id=task_id,
+            source_language="",
+            target_language="zh-CN",
+        )
+
+    assert mock_post.call_args.args[0].endswith("/file/translate")
+    assert mock_post.call_args.kwargs["json_data"] == {
+        "task_id": task_id,
+        "source_language": "",
+        "target_language": "zh-CN",
+        "open_translate": 1,
+    }
+    assert result.fields[0].translated_key == "金额"
+    assert result.tables[0].table_name == "items"
+    assert result.tables[0].items[0][0].value == "商品"
+    assert result.tables[0].item_headers[0].translated_key == "名称"
+    assert result.stamps[0].value == "已盖章"
+    assert result.handwritings[0].text == "签名"
+
+
+def test_file_translate_can_disable_display(client):
+    """测试对外SDK可显式关闭翻译展示且不传源语言"""
+    mock_response = {"code": 200, "msg": "success", "result": {}}
+    with patch.object(client.http_client, 'post', return_value=mock_response) as mock_post:
+        result = client.file.translate(
+            task_id="1978297791713619968",
+            target_language="en",
+            open_translate=0,
+        )
+
+    payload = mock_post.call_args.kwargs["json_data"]
+    assert payload["open_translate"] == 0
+    assert "source_language" not in payload
+    assert result.fields == []
+    assert result.tables == []
+    assert result.stamps == []
+    assert result.handwritings == []
+
+
+def test_file_translate_normalizes_null_lists(client):
+    """测试后端返回null列表时SDK仍提供稳定的空列表"""
+    mock_response = {
+        "code": 200,
+        "msg": "success",
+        "result": {"fields": None, "tables": None, "stamps": None, "handwritings": None},
+    }
+    with patch.object(client.http_client, 'post', return_value=mock_response):
+        result = client.file.translate(
+            task_id="1978297791713619968",
+            target_language="en",
+        )
+
+    assert result.fields == []
+    assert result.tables == []
+    assert result.stamps == []
+    assert result.handwritings == []
+
+
+@pytest.mark.parametrize("open_translate", [-1, 2])
+def test_file_translate_rejects_invalid_switch(client, open_translate):
+    """测试翻译开关只接受0或1"""
+    with pytest.raises(ValidationError):
+        client.file.translate(
+            task_id="1978297791713619968",
+            target_language="en",
+            open_translate=open_translate,
+        )
 
 
 def test_iter_method_exists(client):

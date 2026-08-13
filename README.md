@@ -316,6 +316,34 @@ client.category.samples.download(
 
 📖 **更多 API 使用示例**：查看 [examples 目录](examples/README.md) 获取完整的使用示例，包括文件处理、审核规则和完整业务流程
 
+#### 查询页面图片与翻译识别结果
+
+```python
+# 雪花任务 ID 必须保持字符串；image_url 有效期为 30 天。
+files = client.file.fetch(
+    workspace_id="123",
+    task_id="1978297791713619968",
+    with_image_url=True,
+)
+
+# source_language 不传或为空时自动检测；响应包含 fields/tables/stamps/handwritings。
+translations = client.file.translate(
+    task_id="1978297791713619968",
+    source_language="",
+    target_language="en",
+)
+
+# 显式关闭前端翻译展示，不会删除已有译文。
+client.file.translate(
+    task_id="1978297791713619968",
+    target_language="en",
+    open_translate=0,
+)
+```
+
+`/file/fetch` 原有字段保持兼容，表格名称仍使用 `tableName`；新增译文字段使用
+`translated_*` 命名。
+
 ### 4. 链式调用（减少 70% 重复代码）
 
 通过上下文绑定，无需重复传递 `workspace_id` 和 `category_id`：

@@ -225,6 +225,42 @@ def example_fetch_by_file_id():
                 print(f"  {field.get('name')}: {field.get('value')}")
 
 
+def example_fetch_by_task_id_with_images():
+    """示例8: 按任务查询每页图片及翻译结果"""
+    print("\n=== 示例8: 按任务查询图片和翻译结果 ===")
+    client = setup_client()
+    response = client.file.fetch(
+        workspace_id="123",
+        task_id="1978297791713619968",  # 雪花ID必须保持字符串
+        with_image_url=True,
+    )
+    for file in response.files:
+        for page in file.pages or []:
+            print(page.get("image_url"))  # 图片URL有效期为30天
+        # data中的既有表格名仍为tableName，译文使用translated_table_name。
+        for table in (file.data or {}).get("tables", []):
+            print(table.get("tableName"), table.get("translated_table_name"))
+
+
+def example_translate_file():
+    """示例9: 翻译或关闭翻译展示"""
+    print("\n=== 示例9: 翻译文件识别结果 ===")
+    client = setup_client()
+    result = client.file.translate(
+        task_id="1978297791713619968",
+        source_language="",  # 不传或空字符串表示自动检测
+        target_language="en",
+    )
+    print(len(result.fields), len(result.tables), len(result.stamps), len(result.handwritings))
+
+    # 如需关闭前端翻译展示，可对同一任务显式传open_translate=0。
+    client.file.translate(
+        task_id="1978297791713619968",
+        target_language="en",
+        open_translate=0,
+    )
+
+
 def example_iterate_files():
     """示例8: 迭代所有文件(自动分页)"""
     print("\n=== 示例8: 迭代所有文件 ===")
@@ -579,6 +615,8 @@ if __name__ == "__main__":
         example_fetch_files()
         example_fetch_with_filters()
         example_fetch_by_file_id()
+        example_fetch_by_task_id_with_images()
+        example_translate_file()
         example_iterate_files()
 
         # 更新功能示例
