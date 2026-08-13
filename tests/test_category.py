@@ -196,7 +196,7 @@ def test_category_create_sends_keyword_rules_as_multipart_json(client, mock_work
     data = request.call_args.kwargs["data"]
     assert data["category_keyword_rules"] == (
         '{"positive_rules": [{"group_name": "发票要素", "min_hit": 1, '
-        '"words": ["发票号码", "价税合计"]}], "negative_rules": []}'
+        '"words": [" 发票　号码 ", "价税合计"]}], "negative_rules": []}'
     )
 
 
@@ -313,7 +313,7 @@ def test_category_keyword_rule_precheck_can_be_disabled(client, mock_workspace_i
     {"negative_rules": []},
     {"positive_rules": "not-a-list", "negative_rules": []},
     {"positive_rules": [{}], "negative_rules": []},
-    {"positive_rules": [{"group_name": "g", "min_hit": 1, "words": ["a", " a "]}], "negative_rules": []},
+    {"positive_rules": [{"group_name": "g", "min_hit": 1, "words": ["a", "a"]}], "negative_rules": []},
     {"positive_rules": [{"group_name": "g", "min_hit": 2, "words": ["a"]}], "negative_rules": []},
     {"positive_rules": [{"group_name": "g", "min_hit": 1, "words": ["a"]}],
      "negative_rules": [{"group_name": "n", "min_hit": 1, "words": ["Ａ"]},
@@ -325,7 +325,7 @@ def test_category_keyword_rules_invalid(rules):
 
 
 @pytest.mark.parametrize(("rules", "message"), [
-    ({"positive_rules": [{"group_name": "g", "min_hit": 1, "words": [" 　\u200b"]}], "negative_rules": []}, "关键词不能为空"),
+    ({"positive_rules": [{"group_name": "g", "min_hit": 1, "words": [""]}], "negative_rules": []}, "关键词不能为空"),
     ({"positive_rules": [{"group_name": "g", "min_hit": 1, "words": ["a" * 51]}], "negative_rules": []}, "关键词长度不能超过 50 个字符"),
     ({"positive_rules": [{"group_name": "  ", "min_hit": 1, "words": ["a"]}], "negative_rules": []}, "规则组名称不能为空"),
     ({"positive_rules": [{"group_name": "g", "min_hit": True, "words": ["a"]}], "negative_rules": []}, "min_hit 必须是整数"),
@@ -382,23 +382,20 @@ def test_category_create_malformed_keyword_rules_does_not_send_request(client, m
     request.assert_not_called()
 
 
-def test_category_keyword_rules_normalization_and_conflicts():
+def test_category_keyword_rules_preserve_words_and_compare_exact_values():
     assert validate_category_keyword_rules(_keyword_rules())["positive_rules"][0]["words"] == [
-        "发票号码", "价税合计"
+        " 发票　号码 ", "价税合计"
     ]
-    with pytest.raises(ValidationError, match="正向和反向"):
-        validate_category_keyword_rules({
-            "positive_rules": [{"group_name": "p", "min_hit": 1, "words": ["发票 号码"]}],
-            "negative_rules": [{"group_name": "n", "min_hit": 1, "words": ["发票　号码"]}],
-        })
-    with pytest.raises(ValidationError, match="重复的关键词规则组"):
-        validate_category_keyword_rules({
-            "positive_rules": [
-                {"group_name": "p1", "min_hit": 1, "words": ["a", "b"]},
-                {"group_name": "p2", "min_hit": 1, "words": [" b", "a "]},
-            ],
-            "negative_rules": [],
-        })
+    rules = validate_category_keyword_rules({
+        "positive_rules": [
+            {"group_name": "p1", "min_hit": 1, "words": ["VAT Invoice"]},
+            {"group_name": "p2", "min_hit": 1, "words": ["vat　invoice"]},
+        ],
+        "negative_rules": [{"group_name": "n", "min_hit": 1, "words": [" VAT Invoice "]}],
+    })
+    assert rules["positive_rules"][0]["words"] == ["VAT Invoice"]
+    assert rules["positive_rules"][1]["words"] == ["vat　invoice"]
+    assert rules["negative_rules"][0]["words"] == [" VAT Invoice "]
 
 
 def test_category_keyword_rules_generate_default_group_names():
@@ -427,7 +424,7 @@ def test_category_keyword_rules_accept_models():
         positive_rules=[CategoryKeywordRuleGroup("p", 1, [" A "])],
         negative_rules=[],
     )
-    assert validate_category_keyword_rules(rules)["positive_rules"][0]["words"] == ["a"]
+    assert validate_category_keyword_rules(rules)["positive_rules"][0]["words"] == [" A "]
 
 
 def test_category_delete_validation(client):

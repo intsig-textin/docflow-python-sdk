@@ -31,17 +31,6 @@ from .._constants import DEFAULT_PAGE, DEFAULT_PAGE_SIZE, API_PREFIX
 
 # 合法的抽取模型取值集合：新命名 Auto/Acgpt/Acgpt-VL/DF-M1 + 兼容旧命名 Model 1/2/3
 _VALID_EXTRACT_MODELS = frozenset(m.value for m in ExtractModel)
-# Keep this deliberately aligned with the Java signature builder:
-# [\\s\\u3000\\u200B-\\u200D\\uFEFF].  Python's ``\\s`` accepts additional
-# Unicode whitespace characters, so spell out Java's default whitespace set.
-_KEYWORD_WHITESPACE_RE = re.compile(r"[ \t\n\r\f\v\u3000\u200b-\u200d\ufeff]+")
-
-
-def _normalize_keyword(keyword: str) -> str:
-    """Normalize keywords exactly as category keyword rule comparisons require."""
-    return _KEYWORD_WHITESPACE_RE.sub("", keyword).lower()
-
-
 def _keyword_rules_to_dict(
     rules: Union[CategoryKeywordRules, Mapping[str, Any]],
 ) -> Dict[str, Any]:
@@ -55,7 +44,7 @@ def _keyword_rules_to_dict(
 def validate_category_keyword_rules(
     rules: Union[CategoryKeywordRules, Mapping[str, Any]],
 ) -> Dict[str, Any]:
-    """Validate and canonicalize category keyword rules before sending them.
+    """Validate category keyword rules before sending them.
 
     The API accepts a complete object only.  In particular, ``{}`` is invalid;
     the explicit ``{\"positive_rules\": [], \"negative_rules\": []}`` value is
@@ -76,13 +65,13 @@ def validate_category_keyword_rules(
     if len(negative_rules) > 1:
         raise ValidationError("反向关键词规则组不能超过 1 个")
 
-    canonical = {"positive_rules": [], "negative_rules": []}
+    validated = {"positive_rules": [], "negative_rules": []}
     all_positive_words = set()
     all_negative_words = set()
 
     def validate_groups(groups: List[Any], direction: str) -> List[Dict[str, Any]]:
         seen_signatures = set()
-        normalized_groups = []
+        validated_groups = []
         for index, group in enumerate(groups):
             if isinstance(group, CategoryKeywordRuleGroup):
                 group = group.to_dict()
@@ -107,43 +96,42 @@ def validate_category_keyword_rules(
             if not isinstance(min_hit, int) or isinstance(min_hit, bool):
                 raise ValidationError("min_hit 必须是整数")
 
-            normalized_words = []
+            validated_words = []
             seen_words = set()
             for word in words:
                 if not isinstance(word, str):
                     raise ValidationError("关键词必须是字符串")
-                normalized_word = _normalize_keyword(word)
-                if not normalized_word:
+                if not word:
                     raise ValidationError("关键词不能为空")
-                if len(normalized_word) > 50:
+                if len(word) > 50:
                     raise ValidationError("关键词长度不能超过 50 个字符")
-                if normalized_word in seen_words:
+                if word in seen_words:
                     raise ValidationError("同一规则组内不能包含重复关键词")
-                seen_words.add(normalized_word)
-                normalized_words.append(normalized_word)
+                seen_words.add(word)
+                validated_words.append(word)
 
-            if not 1 <= min_hit <= len(normalized_words):
+            if not 1 <= min_hit <= len(validated_words):
                 raise ValidationError("min_hit 必须在 1 到关键词数量之间")
-            signature = (min_hit, tuple(sorted(normalized_words)))
+            signature = (min_hit, tuple(sorted(validated_words)))
             if signature in seen_signatures:
                 raise ValidationError("同一方向不能包含重复的关键词规则组")
             seen_signatures.add(signature)
-            normalized_groups.append({
+            validated_groups.append({
                 "group_name": group_name.strip(),
                 "min_hit": min_hit,
-                "words": normalized_words,
+                "words": validated_words,
             })
             if direction == "positive":
-                all_positive_words.update(normalized_words)
+                all_positive_words.update(validated_words)
             else:
-                all_negative_words.update(normalized_words)
-        return normalized_groups
+                all_negative_words.update(validated_words)
+        return validated_groups
 
-    canonical["positive_rules"] = validate_groups(positive_rules, "positive")
-    canonical["negative_rules"] = validate_groups(negative_rules, "negative")
+    validated["positive_rules"] = validate_groups(positive_rules, "positive")
+    validated["negative_rules"] = validate_groups(negative_rules, "negative")
     if all_positive_words & all_negative_words:
         raise ValidationError("正向和反向关键词规则不能包含相同关键词")
-    return canonical
+    return validated
 
 
 def _rule_group_signature(group: Any) -> Optional[Tuple[int, Tuple[str, ...]]]:
@@ -157,11 +145,7 @@ def _rule_group_signature(group: Any) -> Optional[Tuple[int, Tuple[str, ...]]]:
         group = group.to_dict()
     if not isinstance(group, Mapping) or not isinstance(group.get("words"), list):
         return None
-    words = {
-        _normalize_keyword(word)
-        for word in group["words"]
-        if isinstance(word, str) and _normalize_keyword(word)
-    }
+    words = {word for word in group["words"] if isinstance(word, str) and word}
     if not words:
         return None
     min_hit = group.get("min_hit", group.get("minHit", 1))
@@ -377,11 +361,11 @@ class CategoryResource(BaseResource):
                 i18n_key='error.category.prompt_too_long'
             )
 
-        normalized_keyword_rules = None
+        validated_keyword_rules = None
         if category_keyword_rules is not None:
-            normalized_keyword_rules = validate_category_keyword_rules(category_keyword_rules)
+            validated_keyword_rules = validate_category_keyword_rules(category_keyword_rules)
             if check_keyword_rule_conflicts:
-                self._validate_keyword_rule_conflicts(workspace_id, normalized_keyword_rules)
+                self._validate_keyword_rule_conflicts(workspace_id, validated_keyword_rules)
 
         # 准备 multipart/form-data 表单数据
         data = {
@@ -394,8 +378,8 @@ class CategoryResource(BaseResource):
         if category_prompt:
             data["category_prompt"] = category_prompt
 
-        if normalized_keyword_rules is not None:
-            data["category_keyword_rules"] = json.dumps(normalized_keyword_rules, ensure_ascii=False)
+        if validated_keyword_rules is not None:
+            data["category_keyword_rules"] = json.dumps(validated_keyword_rules, ensure_ascii=False)
 
         if tables:
             data["tables"] = json.dumps(tables, ensure_ascii=False)
@@ -562,12 +546,12 @@ class CategoryResource(BaseResource):
             payload["category_prompt"] = category_prompt
 
         if category_keyword_rules is not None:
-            normalized_keyword_rules = validate_category_keyword_rules(category_keyword_rules)
+            validated_keyword_rules = validate_category_keyword_rules(category_keyword_rules)
             if check_keyword_rule_conflicts:
                 self._validate_keyword_rule_conflicts(
-                    workspace_id, normalized_keyword_rules, category_id=category_id
+                    workspace_id, validated_keyword_rules, category_id=category_id
                 )
-            payload["category_keyword_rules"] = normalized_keyword_rules
+            payload["category_keyword_rules"] = validated_keyword_rules
 
 
         if extract_model is not None:
