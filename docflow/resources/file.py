@@ -479,7 +479,6 @@ class FileResource(BaseResource):
         task_id: str,
         target_language: str,
         source_language: Optional[str] = None,
-        open_translate: int = 1,
     ) -> FileTranslateResponse:
         """翻译任务的字段、表格、印章和手写体识别结果。
 
@@ -487,24 +486,19 @@ class FileResource(BaseResource):
             task_id: 任务ID。雪花ID必须使用字符串，避免精度丢失。
             target_language: 目标语言，使用 ISO 639-1 编码；中文使用 zh-CN/zh-TW。
             source_language: 源语言；不传或传空字符串时自动检测。
-            open_translate: 翻译展示开关，1为开启并翻译，0为关闭展示；默认1。
 
         Returns:
             FileTranslateResponse: 四类翻译结果。
 
         Raises:
-            ValidationError: 任务ID、目标语言或开关值不合法。
+            ValidationError: 任务ID或目标语言不合法。
         """
         self._validate_id(task_id, "任务ID")
         if not target_language or not target_language.strip():
             raise ValidationError("目标语言不能为空")
-        if open_translate not in (0, 1):
-            raise ValidationError("open_translate 只能为0或1")
-
         payload = {
             "task_id": task_id,
             "target_language": target_language,
-            "open_translate": open_translate,
         }
         if source_language is not None:
             payload["source_language"] = source_language

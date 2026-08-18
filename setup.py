@@ -8,7 +8,7 @@ with open("README.md", "r", encoding="utf-8") as fh:
 
 setup(
     name="docflow-python-sdk",
-    version="1.1.2",
+    version="1.1.3",
     author="Docflow Team",
     author_email="support@example.com",
     description="Docflow Python SDK",

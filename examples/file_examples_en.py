@@ -140,19 +140,13 @@ def example_fetch_by_task_id_with_images():
 
 
 def example_translate_file():
-    """Translate recognition results or disable translated-result display."""
+    """Translate recognition results."""
     result = client.file.translate(
         task_id="1978297791713619968",
         source_language="",  # Omit or send an empty string for auto detection.
         target_language="en",
     )
     print(len(result.fields), len(result.tables), len(result.stamps), len(result.handwritings))
-
-    client.file.translate(
-        task_id="1978297791713619968",
-        target_language="en",
-        open_translate=0,
-    )
 
 
 def example_iterate_files():

@@ -243,7 +243,7 @@ def example_fetch_by_task_id_with_images():
 
 
 def example_translate_file():
-    """示例9: 翻译或关闭翻译展示"""
+    """示例9: 翻译文件识别结果"""
     print("\n=== 示例9: 翻译文件识别结果 ===")
     client = setup_client()
     result = client.file.translate(
@@ -252,13 +252,6 @@ def example_translate_file():
         target_language="en",
     )
     print(len(result.fields), len(result.tables), len(result.stamps), len(result.handwritings))
-
-    # 如需关闭前端翻译展示，可对同一任务显式传open_translate=0。
-    client.file.translate(
-        task_id="1978297791713619968",
-        target_language="en",
-        open_translate=0,
-    )
 
 
 def example_iterate_files():

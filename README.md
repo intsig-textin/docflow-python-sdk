@@ -332,13 +332,6 @@ translations = client.file.translate(
     source_language="",
     target_language="en",
 )
-
-# 显式关闭前端翻译展示，不会删除已有译文。
-client.file.translate(
-    task_id="1978297791713619968",
-    target_language="en",
-    open_translate=0,
-)
 ```
 
 `/file/fetch` 原有字段保持兼容，表格名称仍使用 `tableName`；新增译文字段使用

@@ -28,6 +28,16 @@ def test_file_resource_has_methods(client):
     assert hasattr(client.file, 'amend_category')
 
 
+def test_file_translate_does_not_expose_internal_switch(client):
+    """翻译展示开关属于服务端内部能力，不应出现在SDK公开签名中。"""
+    import inspect
+
+    params = inspect.signature(client.file.translate).parameters
+
+    assert list(params) == ['task_id', 'target_language', 'source_language']
+    assert 'open_translate' not in params
+
+
 def test_file_fetch_has_default_pagination(client):
     """测试文件查询默认分页参数"""
     # 这里主要测试方法签名，不实际调用 API
@@ -140,7 +150,6 @@ def test_file_translate_request_and_response(client):
         "task_id": task_id,
         "source_language": "",
         "target_language": "zh-CN",
-        "open_translate": 1,
     }
     assert result.fields[0].translated_key == "金额"
     assert result.tables[0].table_name == "items"
@@ -148,25 +157,6 @@ def test_file_translate_request_and_response(client):
     assert result.tables[0].item_headers[0].translated_key == "名称"
     assert result.stamps[0].value == "已盖章"
     assert result.handwritings[0].text == "签名"
-
-
-def test_file_translate_can_disable_display(client):
-    """测试对外SDK可显式关闭翻译展示且不传源语言"""
-    mock_response = {"code": 200, "msg": "success", "result": {}}
-    with patch.object(client.http_client, 'post', return_value=mock_response) as mock_post:
-        result = client.file.translate(
-            task_id="1978297791713619968",
-            target_language="en",
-            open_translate=0,
-        )
-
-    payload = mock_post.call_args.kwargs["json_data"]
-    assert payload["open_translate"] == 0
-    assert "source_language" not in payload
-    assert result.fields == []
-    assert result.tables == []
-    assert result.stamps == []
-    assert result.handwritings == []
 
 
 def test_file_translate_normalizes_null_lists(client):
@@ -186,17 +176,6 @@ def test_file_translate_normalizes_null_lists(client):
     assert result.tables == []
     assert result.stamps == []
     assert result.handwritings == []
-
-
-@pytest.mark.parametrize("open_translate", [-1, 2])
-def test_file_translate_rejects_invalid_switch(client, open_translate):
-    """测试翻译开关只接受0或1"""
-    with pytest.raises(ValidationError):
-        client.file.translate(
-            task_id="1978297791713619968",
-            target_language="en",
-            open_translate=open_translate,
-        )
 
 
 def test_iter_method_exists(client):

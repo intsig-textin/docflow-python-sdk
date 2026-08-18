@@ -270,13 +270,6 @@ translations = client.file.translate(
     source_language="",
     target_language="en",
 )
-
-# Disable translated-result display without deleting stored translations.
-client.file.translate(
-    task_id="1978297791713619968",
-    target_language="en",
-    open_translate=0,
-)
 ```
 
 Existing `/file/fetch` fields remain compatible: table names still use `tableName`, while new
