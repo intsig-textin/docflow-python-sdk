@@ -35,6 +35,50 @@ def test_category_list_validation(client):
         client.category.list(workspace_id="123", page_size=0)
 
 
+@pytest.mark.parametrize("invalid_value", ["false", 0, 1])
+def test_category_list_rejects_non_bool_exclude_unadded_preset_categories(
+    client, invalid_value
+):
+    """未添加预置类别过滤参数只接受精确的 bool 类型。"""
+    with patch.object(client.http_client, "get") as get:
+        with pytest.raises(
+            ValidationError, match="exclude_unadded_preset_categories 必须是布尔值"
+        ):
+            client.category.list(
+                workspace_id="123",
+                exclude_unadded_preset_categories=invalid_value,
+            )
+
+    get.assert_not_called()
+
+
+@pytest.mark.parametrize(
+    ("kwargs", "expected_value"),
+    [
+        ({}, "false"),
+        ({"exclude_unadded_preset_categories": False}, "false"),
+        ({"exclude_unadded_preset_categories": True}, "true"),
+    ],
+)
+def test_category_list_serializes_exclude_unadded_preset_categories(
+    client, kwargs, expected_value
+):
+    """默认值和显式布尔值均应序列化为小写查询参数。"""
+    mock_response = {
+        "code": 200,
+        "msg": "success",
+        "result": {"categories": [], "total": 0, "page": 1, "page_size": 20},
+    }
+
+    with patch.object(client.http_client, "get", return_value=mock_response) as get:
+        client.category.list(workspace_id="123", **kwargs)
+
+    assert (
+        get.call_args.kwargs["params"]["exclude_unadded_preset_categories"]
+        == expected_value
+    )
+
+
 def test_category_list_success(client, mock_workspace_id, mock_category_data):
     """测试类别列表正常返回"""
     # Mock API 响应

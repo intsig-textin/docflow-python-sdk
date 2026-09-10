@@ -406,6 +406,7 @@ class CategoryResource(BaseResource):
         page: int = DEFAULT_PAGE,
         page_size: int = DEFAULT_PAGE_SIZE,
         enabled: Union[EnabledStatus, str] = EnabledStatus.ENABLED,
+        exclude_unadded_preset_categories: bool = False,
     ) -> CategoryListResponse:
         """
         获取分类列表
@@ -419,6 +420,8 @@ class CategoryResource(BaseResource):
                 - EnabledStatus.DISABLED: 未启用
                 - EnabledStatus.ENABLED: 已启用（默认）
                 - EnabledStatus.OTHER: 其他状态
+            exclude_unadded_preset_categories: 是否排除尚未添加到当前工作空间的
+                预置类别，默认 False
 
         Returns:
             CategoryListResponse: 分类列表响应
@@ -459,12 +462,17 @@ class CategoryResource(BaseResource):
                 "enabled 必须是 EnabledStatus.ALL/DISABLED/ENABLED/OTHER 或对应的字符串值",
                 i18n_key='error.category.enabled_invalid'
             )
+        if type(exclude_unadded_preset_categories) is not bool:
+            raise ValidationError("exclude_unadded_preset_categories 必须是布尔值")
 
         params = {
             "workspace_id": workspace_id,
             "page": page,
             "page_size": page_size,
             "enabled": enabled_value,
+            "exclude_unadded_preset_categories": str(
+                exclude_unadded_preset_categories
+            ).lower(),
         }
 
         response = self.http_client.get(f"{API_PREFIX}/category/list", params=params)

@@ -3,7 +3,7 @@
 """
 import pytest
 from unittest.mock import Mock, MagicMock
-from docflow import DocflowClient
+from docflow import DocflowClient, EnabledStatus
 from docflow.context import WorkspaceContext, CategoryContext, ReviewContext
 
 
@@ -29,6 +29,33 @@ def test_workspace_context_category(client):
     assert isinstance(cat, CategoryContext)
     assert cat.workspace_id == "123"
     assert cat.category_id == "456"
+
+
+@pytest.mark.parametrize(
+    ("kwargs", "expected_value"),
+    [
+        ({}, False),
+        ({"exclude_unadded_preset_categories": False}, False),
+        ({"exclude_unadded_preset_categories": True}, True),
+    ],
+)
+def test_workspace_context_list_categories_forwards_exclude_preset_filter(
+    client, kwargs, expected_value
+):
+    """WorkspaceContext 应将预置类别过滤参数原样转发给资源层。"""
+    ws = client.workspace("123")
+    ws._category_resource.list = Mock(return_value="categories")
+
+    result = ws.list_categories(**kwargs)
+
+    assert result == "categories"
+    ws._category_resource.list.assert_called_once_with(
+        workspace_id="123",
+        page=1,
+        page_size=20,
+        enabled=EnabledStatus.ENABLED,
+        exclude_unadded_preset_categories=expected_value,
+    )
 
 
 def test_category_context_creation(client):

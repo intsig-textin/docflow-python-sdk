@@ -703,7 +703,11 @@ class WorkspaceContext:
         )
 
     def list_categories(
-        self, page: int = DEFAULT_PAGE, page_size: int = DEFAULT_PAGE_SIZE, enabled: Union[EnabledStatus, str] = EnabledStatus.ENABLED
+        self,
+        page: int = DEFAULT_PAGE,
+        page_size: int = DEFAULT_PAGE_SIZE,
+        enabled: Union[EnabledStatus, str] = EnabledStatus.ENABLED,
+        exclude_unadded_preset_categories: bool = False,
     ):
         """
         获取当前工作空间的类别列表
@@ -712,12 +716,17 @@ class WorkspaceContext:
             page: 页码，从 1 开始，默认 1
             page_size: 每页数量，默认 20，最大 100
             enabled: 启用状态（EnabledStatus 枚举或字符串），默认 EnabledStatus.ENABLED
+            exclude_unadded_preset_categories: 是否排除尚未添加的预置类别，默认 False
 
         Returns:
             CategoryListResponse: 类别列表响应
         """
         return self._category_resource.list(
-            workspace_id=self.workspace_id, page=page, page_size=page_size, enabled=enabled
+            workspace_id=self.workspace_id,
+            page=page,
+            page_size=page_size,
+            enabled=enabled,
+            exclude_unadded_preset_categories=exclude_unadded_preset_categories,
         )
 
     def create_category(
