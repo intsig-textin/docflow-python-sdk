@@ -6,6 +6,16 @@
 
 格式基于 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)，
 版本号遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
+## [1.1.4] - 2026-09-15
+
+### Added
+
+- `category.list` 和 `WorkspaceContext.list_categories` 新增可选布尔参数 `exclude_unadded_preset_categories`，用于排除尚未添加到当前工作空间的预置类别；默认 `False`，保持原有行为，可与 `enabled` 同时使用。
+
+### Fixed
+
+- 类别关键词按原始字符串校验和发送，保留大小写及空格；重复、正反向冲突和跨类别冲突校验同步按原始值比较，与后端契约一致。
+
 ## [1.1.3] - 2026-08-18
 
 ### Added

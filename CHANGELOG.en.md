@@ -6,6 +6,16 @@ This document records all notable changes to the Docflow Python SDK.
 
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), and versions follow [Semantic Versioning](https://semver.org/).
 
+## [1.1.4] - 2026-09-15
+
+### Added
+
+- Added the optional boolean `exclude_unadded_preset_categories` to `category.list` and `WorkspaceContext.list_categories` to exclude preset categories not added to the workspace. Defaults to `False` and works together with `enabled`.
+
+### Fixed
+
+- Preserve original keyword strings, including case and whitespace, during validation and transmission. Duplicate and conflict checks now compare original strings to match the backend contract.
+
 ## [1.1.3] - 2026-08-18
 
 ### Added

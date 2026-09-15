@@ -377,3 +377,17 @@ Issues and pull requests are welcome. Please include tests and update both langu
 ## 📄 License
 
 See [LICENSE](LICENSE) for license information.
+
+### Filter preset categories not added to the workspace
+
+Set to `True` to exclude preset categories not added to the workspace. Defaults to `False` and can be combined with `enabled`.
+
+```python
+categories = client.category.list(
+    workspace_id="your_workspace_id",
+    exclude_unadded_preset_categories=True,
+)
+categories = client.workspace("your_workspace_id").list_categories(
+    exclude_unadded_preset_categories=True,
+)
+```

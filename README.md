@@ -985,3 +985,17 @@ MIT License
 
 **版本**: 1.0.4
 **最后更新**: 2026-05-26
+
+### 过滤尚未添加的预置类别
+
+设为 `True` 后排除尚未添加到当前空间的预置类别；默认 `False`，可与 `enabled` 配合使用。
+
+```python
+categories = client.category.list(
+    workspace_id="your_workspace_id",
+    exclude_unadded_preset_categories=True,
+)
+categories = client.workspace("your_workspace_id").list_categories(
+    exclude_unadded_preset_categories=True,
+)
+```
