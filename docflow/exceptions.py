@@ -101,8 +101,8 @@ class APIError(DocflowException):
         self.code = code
         self.trace_id = trace_id
 
-        # 如果没有指定 i18n_key，尝试根据状态码获取
-        if i18n_key is None and status_code in [400, 401, 403, 404, 423, 429, 500, 502, 503, 504, 900]:
+        # 服务端已给出业务错误码时保留具体原因，避免 HTTP 通用翻译覆盖业务消息。
+        if i18n_key is None and code is None and status_code in [400, 401, 403, 404, 423, 429, 500, 502, 503, 504, 900]:
             i18n_key = f'error.http.{status_code}'
 
         # 格式化错误消息

@@ -26,6 +26,7 @@
 | [review_examples.py](review_examples.py) | [review_examples_en.py](review_examples_en.py) | 审核规则资源完整示例 | 22个 |
 | [complete_workflow_example.py](complete_workflow_example.py) | [complete_workflow_example_en.py](complete_workflow_example_en.py) | 端到端业务流程示例 | 3个场景 |
 | [file_examples.py](file_examples.py) | [file_examples_en.py](file_examples_en.py) | 文件处理资源完整示例 | 17个 |
+| [split_config_example.py](split_config_example.py) | [split_config_example_en.py](split_config_example_en.py) | 拆套配置读取与安全更新示例 | 1个 |
 
 ## 🚀 快速开始
 
@@ -81,6 +82,9 @@ python examples/review_examples.py
 
 # 运行完整工作流程示例
 python examples/complete_workflow_example.py
+
+# 运行拆套配置示例（默认只读）
+python examples/split_config_example.py
 
 # 英文版样例使用对应的 _en.py 文件，例如：
 python examples/quick_start_en.py

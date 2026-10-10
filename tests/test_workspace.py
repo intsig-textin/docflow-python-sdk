@@ -3,8 +3,7 @@
 """
 import pytest
 from unittest.mock import patch
-from docflow import DocflowClient
-from docflow.exceptions import ValidationError, APIError
+from docflow.exceptions import ValidationError
 from docflow.enums import AuthScope
 
 
@@ -95,6 +94,83 @@ def test_delete_workspace_validation(client):
     # 测试包含非数字 ID
     with pytest.raises(ValidationError, match="工作空间 ID 格式错误"):
         client.workspace.delete(workspace_ids=["123", "abc"])
+
+
+def test_get_category_split_config_success(client):
+    mock_response = {
+        "code": 200,
+        "msg": "success",
+        "result": {
+            "workspace_id": "123",
+            "scope": "category",
+            "category_id": "456",
+            "rule_mode": "inherit",
+            "rule_order": [],
+            "constraint": "none",
+            "llm_prompt_mode": "default",
+        },
+    }
+    with patch.object(client.http_client, "get", return_value=mock_response) as mock_get:
+        result = client.workspace.get_split_config("123", "category", "456")
+    assert result.category_id == "456"
+    assert result.rule_mode == "inherit"
+    assert result.rule_order == []
+    assert not hasattr(result, "effective_rule_order")
+    assert not hasattr(result, "default_rule_order")
+    mock_get.assert_called_once_with(
+        "/app-api/sip/platform/v2/split-config/get",
+        params={"workspace_id": "123", "scope": "category", "category_id": "456"},
+    )
+
+
+def test_update_workspace_split_config_success(client):
+    mock_response = {
+        "code": 200,
+        "msg": "success",
+        "result": {
+            "workspace_id": "123",
+            "scope": "workspace",
+            "rule_mode": "custom",
+            "rule_order": ["page_same"],
+            "constraint": "none",
+            "llm_prompt_mode": "default",
+        },
+    }
+    with patch.object(client.http_client, "post", return_value=mock_response) as mock_post:
+        result = client.workspace("123").update_split_config(
+            scope="workspace",
+            rule_mode="custom",
+            rule_order=["page_same"],
+        )
+    assert not hasattr(result, "config_version")
+    assert mock_post.call_args[0][0] == "/app-api/sip/platform/v2/split-config/update"
+    assert "config_version" not in mock_post.call_args[1]["json_data"]
+
+
+@pytest.mark.parametrize(
+    "kwargs",
+    [
+        {"workspace_id": "123", "scope": "bad"},
+        {"workspace_id": "123", "scope": "category"},
+        {"workspace_id": "123", "scope": "workspace", "category_id": "456"},
+    ],
+)
+def test_get_split_config_target_validation(client, kwargs):
+    with pytest.raises(ValidationError):
+        client.workspace.get_split_config(**kwargs)
+
+
+def test_update_split_config_rejects_invalid_rules_and_prompt(client):
+    with pytest.raises(ValidationError, match="rule_order"):
+        client.workspace.update_split_config(
+            "123", "workspace", "custom", ["unknown"]
+        )
+    with pytest.raises(ValidationError, match="llm_prompt"):
+        client.workspace.update_split_config(
+            "123", "category", "custom", ["llm_judge"],
+            category_id="456", llm_prompt_mode="custom",
+        )
+
 
 def test_workspace_create_success(client):
     """测试创建工作空间成功"""
@@ -628,3 +704,192 @@ def test_enterprise_id_not_in_request_body():
 
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])
+
+
+@pytest.mark.parametrize("bound", [False, True])
+@pytest.mark.parametrize("scope,mode", [("workspace", "default"), ("workspace", "custom"), ("category", "inherit"), ("category", "custom")])
+def test_split_config_repeated_replacement_without_version(client, bound, scope, mode):
+    resource = client.workspace("123") if bound else client.workspace
+    target = {} if bound else {"workspace_id": "123"}
+    if scope == "category":
+        target["category_id"] = "456"
+    response = {"code": 200, "result": {"workspace_id": "123", "scope": scope, "rule_mode": mode}}
+    with patch.object(client.http_client, "post", return_value=response) as post:
+        for rules in [["page_same"], []]:
+            result = resource.update_split_config(scope=scope, rule_mode=mode, rule_order=rules, **target)
+            assert not hasattr(result, "config_version")
+        assert post.call_count == 2
+        payload = post.call_args.kwargs["json_data"]
+        assert payload == {
+            "workspace_id": "123", "scope": scope, "rule_mode": mode,
+            "rule_order": [], "constraint": "none", "llm_prompt_mode": "default",
+            **({"category_id": "456"} if scope == "category" else {}),
+        }
+    with patch.object(client.http_client, "get", return_value=response) as get:
+        result = resource.get_split_config(scope=scope, **target)
+        assert result.constraint == "none"
+        assert result.llm_prompt_mode == "default"
+        assert result.rule_order == []
+        assert not hasattr(result, "config_version")
+        assert get.call_args.kwargs["params"] == {"workspace_id": "123", "scope": scope, **({"category_id": "456"} if scope == "category" else {})}
+
+
+@pytest.mark.parametrize("bound", [False, True])
+def test_split_config_legacy_version_is_not_a_public_parameter(client, bound):
+    resource = client.workspace("123") if bound else client.workspace
+    with patch.object(client.http_client, "post") as post:
+        with pytest.raises(TypeError, match="config_version"):
+            resource.update_split_config(scope="workspace", rule_mode="custom", rule_order=[], config_version=1, **({} if bound else {"workspace_id": "123"}))
+        post.assert_not_called()
+
+
+def test_split_config_response_ignores_legacy_version():
+    from dataclasses import asdict
+    from docflow.models.workspace import SplitConfigResponse
+    result = SplitConfigResponse.from_dict({"workspace_id": "123", "scope": "workspace", "rule_mode": "custom", "config_version": "ignored"})
+    assert "config_version" not in asdict(result)
+
+
+@pytest.mark.parametrize("overrides,message", [
+    ({"rule_order": None}, "rule_order"),
+    ({"rule_order": [None]}, "rule_order"),
+    ({"rule_order": ["unknown"]}, "rule_order"),
+    ({"rule_order": ["page_same", "page_same"]}, "重复"),
+    ({"rule_order": [None] * 8}, "7"),
+    ({"rule_mode": "inherit"}, "rule_mode"),
+    ({"constraint": "strict_once"}, "constraint"),
+    ({"llm_prompt_mode": "bad"}, "llm_prompt_mode"),
+    ({"rule_order": ["llm_judge"], "llm_prompt_mode": "custom", "llm_prompt": "  "}, "llm_prompt"),
+])
+def test_split_config_local_validation_does_not_send(client, overrides, message):
+    args = {"workspace_id": "123", "scope": "workspace", "rule_mode": "custom", "rule_order": []}
+    args.update(overrides)
+    with patch.object(client.http_client, "post") as post:
+        with pytest.raises(ValidationError, match=message):
+            client.workspace.update_split_config(**args)
+        post.assert_not_called()
+
+
+def test_split_config_all_rules_and_long_custom_prompt(client):
+    rules = ["page_same", "page_reset", "invoice_diff", "invoice_same", "page_seq", "table_continue", "llm_judge"]
+    prompt = "split instructions " * 1000
+    with patch.object(client.http_client, "post", return_value={"result": {}}) as post:
+        client.workspace.update_split_config("123", "category", "custom", rules, category_id="456", constraint="strict_once", llm_prompt_mode="custom", llm_prompt=prompt)
+        assert post.call_args.kwargs["json_data"]["llm_prompt"] == prompt
+
+
+@pytest.fixture(params=[False, True], ids=["resource", "bound"])
+def split_prompt_target(client, request):
+    resource = client.workspace("123") if request.param else client.workspace
+    return resource, {} if request.param else {"workspace_id": "123"}
+
+
+@pytest.fixture(params=["workspace", "category"])
+def split_prompt_scope(request):
+    return {
+        "scope": request.param,
+        "rule_mode": "custom",
+        "constraint": "strict_once" if request.param == "category" else "none",
+        **({"category_id": "456"} if request.param == "category" else {}),
+    }
+
+
+@pytest.mark.parametrize("prompt,expected", [
+    (1, "1"), (0, "0"), (-1, "-1"), (1.25, "1.25"),
+    (0.0, "0.0"), (-0.0, "-0.0"), (-2.5, "-2.5"),
+    (1e100, "1e+100"), ("  split\n", "  split\n"),
+])
+def test_split_config_prompt_normalization(client, split_prompt_target, split_prompt_scope, prompt, expected):
+    resource, target = split_prompt_target
+    with patch.object(client.http_client, "post", return_value={"result": {}}) as post:
+        resource.update_split_config(
+            **target, **split_prompt_scope, rule_order=["llm_judge"],
+            llm_prompt_mode="custom", llm_prompt=prompt,
+        )
+        assert post.call_args.kwargs["json_data"] == {
+            "workspace_id": "123", **split_prompt_scope,
+            "rule_order": ["llm_judge"], "llm_prompt_mode": "custom", "llm_prompt": expected,
+        }
+        assert isinstance(post.call_args.kwargs["json_data"]["llm_prompt"], str)
+
+
+@pytest.mark.parametrize("prompt", [None, "", " \t\n"])
+def test_split_config_prompt_required_without_request(client, split_prompt_target, split_prompt_scope, prompt):
+    resource, target = split_prompt_target
+    with patch.object(client.http_client, "post") as post:
+        with pytest.raises(ValidationError, match="llm_prompt"):
+            resource.update_split_config(
+                **target, **split_prompt_scope, rule_order=["llm_judge"],
+                llm_prompt_mode="custom", llm_prompt=prompt,
+            )
+        post.assert_not_called()
+
+
+@pytest.mark.parametrize("rules,prompt_mode", [
+    (["llm_judge"], "default"), ([], "custom"), ([], "default"),
+])
+@pytest.mark.parametrize("prompt", [None, "", " \t\n", 0])
+def test_split_config_prompt_optional_modes(client, split_prompt_target, split_prompt_scope, rules, prompt_mode, prompt):
+    resource, target = split_prompt_target
+    with patch.object(client.http_client, "post", return_value={"result": {}}) as post:
+        resource.update_split_config(
+            **target, **split_prompt_scope, rule_order=rules,
+            llm_prompt_mode=prompt_mode, llm_prompt=prompt,
+        )
+        payload = post.call_args.kwargs["json_data"]
+        if prompt is None:
+            assert "llm_prompt" not in payload
+        else:
+            assert payload["llm_prompt"] == ("0" if prompt == 0 else prompt)
+
+
+@pytest.mark.parametrize("prompt", [
+    True, False, float("nan"), float("inf"), float("-inf"), [], {}, object(),
+])
+@pytest.mark.parametrize("rules,prompt_mode", [(["llm_judge"], "custom"), ([], "default")])
+def test_split_config_prompt_invalid_type_without_request(client, split_prompt_target, split_prompt_scope, prompt, rules, prompt_mode):
+    resource, target = split_prompt_target
+    with patch.object(client.http_client, "post") as post:
+        with pytest.raises(ValidationError, match="llm_prompt"):
+            resource.update_split_config(
+                **target, **split_prompt_scope, rule_order=rules,
+                llm_prompt_mode=prompt_mode, llm_prompt=prompt,
+            )
+        post.assert_not_called()
+
+
+def test_split_config_prompt_does_not_stringify_arbitrary_objects(client):
+    from decimal import Decimal
+
+    class Unstringifiable:
+        def __str__(self):
+            raise AssertionError("unsupported prompt must not be stringified")
+
+    with patch.object(client.http_client, "post") as post:
+        for prompt in [Unstringifiable(), Decimal("1")]:
+            with pytest.raises(ValidationError, match="llm_prompt"):
+                client.workspace.update_split_config("123", "workspace", "custom", [], llm_prompt=prompt)
+        post.assert_not_called()
+
+
+@pytest.mark.parametrize("operation", ["get", "update"])
+@pytest.mark.parametrize("http_status,body", [
+    (200, {"code": 1005025000, "msg": "category missing", "data": None}),
+    (400, {"code": 1005025103, "msg": "duplicate rule", "result": None}),
+])
+def test_split_config_transport_rejects_errors_before_model_parse(client, operation, http_status, body):
+    import json
+    import requests
+    from docflow.exceptions import APIError
+
+    response = requests.Response()
+    response.status_code = http_status
+    response._content = json.dumps(body).encode("utf-8")
+    with patch.object(client.http_client.session, "request", return_value=response):
+        with pytest.raises(APIError) as exc:
+            if operation == "get":
+                client.workspace.get_split_config("123")
+            else:
+                client.workspace.update_split_config("123", "workspace", "custom", [])
+    assert str(exc.value.code) == str(body["code"])
+    assert body["msg"] in str(exc.value)

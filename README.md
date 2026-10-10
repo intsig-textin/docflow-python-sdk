@@ -132,6 +132,26 @@ client.workspace.update(
 client.workspace.delete(workspace_ids=["123", "456"])
 ```
 
+#### 读取和更新拆套配置
+
+```python
+workspace = client.workspace("123")
+
+# 读取空间级配置；类别级配置使用 scope="category" 并传 category_id
+config = workspace.get_split_config()
+
+# 完整替换空间级拆套配置
+updated = workspace.update_split_config(
+    scope="workspace",
+    rule_mode="custom",
+    rule_order=["page_same", "invoice_diff", "llm_judge"],
+    llm_prompt_mode="default",
+)
+```
+
+更新接口会完整替换所选作用域的配置。类别级配置的 `rule_mode` 可设为 `inherit`
+或 `custom`；空间级配置可设为 `default` 或 `custom`。
+
 ### 3. 类别操作
 
 #### 创建类别（带文件上传）
@@ -660,6 +680,35 @@ def update(
 def delete(workspace_ids: List[str]) -> None
 ```
 
+##### get_split_config()
+
+读取空间级或类别级拆套配置。
+
+```python
+def get_split_config(
+    workspace_id: str,
+    scope: str = "workspace",
+    category_id: Optional[str] = None,
+) -> SplitConfigResponse
+```
+
+##### update_split_config()
+
+完整替换空间级或类别级拆套配置。
+
+```python
+def update_split_config(
+    workspace_id: str,
+    scope: str,
+    rule_mode: str,
+    rule_order: List[str],
+    category_id: Optional[str] = None,
+    constraint: str = "none",
+    llm_prompt_mode: str = "default",
+    llm_prompt: Optional[Union[str, int, float]] = None,
+) -> SplitConfigResponse
+```
+
 ## 🔧 配置
 
 ### 环境变量
@@ -895,6 +944,9 @@ python examples/file_examples.py
 
 # 运行审核规则示例
 python examples/review_examples.py
+
+# 运行拆套配置示例（默认只读）
+python examples/split_config_example.py
 ```
 
 ## 📝 异常类型

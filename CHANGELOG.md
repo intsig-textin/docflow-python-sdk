@@ -6,6 +6,15 @@
 
 格式基于 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)，
 版本号遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
+
+## [Unreleased]
+
+### Added
+
+- 新增 `workspace.get_split_config`、`workspace.update_split_config` 及对应工作空间上下文方法，支持读取和更新空间级、类别级拆套配置，完整替换所选作用域的拆套配置；省略可选字段时使用既有默认值，并发更新以最后一次数据库写入为准。
+- 精简拆套配置响应：保留空间、作用域和按需返回的类别 ID，仅返回本级配置，不再返回系统规则列表或继承后的规则列表。
+- 修复 SDK 将 HTTP 400 业务错误原因覆盖为通用提示的问题；存在业务错误码时保留服务端消息。
+
 ## [1.1.4] - 2026-09-15
 
 ### Added

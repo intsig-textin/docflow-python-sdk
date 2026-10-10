@@ -24,6 +24,7 @@ This example creates a workspace, configures categories, uploads files, reads ex
 | [file_examples_en.py](file_examples_en.py) | [file_examples.py](file_examples.py) | Complete file resource examples | 17 examples |
 | [review_examples_en.py](review_examples_en.py) | [review_examples.py](review_examples.py) | Complete review resource examples | 22 examples |
 | [complete_workflow_example_en.py](complete_workflow_example_en.py) | [complete_workflow_example.py](complete_workflow_example.py) | End-to-end business workflows | 3 scenarios |
+| [split_config_example_en.py](split_config_example_en.py) | [split_config_example.py](split_config_example.py) | Read and safely update split configuration | 1 example |
 
 ## 🚀 Getting Started
 
@@ -63,6 +64,7 @@ python examples/quick_start_en.py
 python examples/file_examples_en.py
 python examples/review_examples_en.py
 python examples/complete_workflow_example_en.py
+python examples/split_config_example_en.py
 ```
 
 ## 📖 Example Details

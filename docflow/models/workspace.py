@@ -1,7 +1,7 @@
 """
 工作空间相关数据模型
 """
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Optional, List, Any, Dict
 
 
@@ -97,4 +97,33 @@ class WorkspaceDetailResponse:
             manage_account_name=data.get("manage_account_name", data.get("manageAccountName")),
             callback_url=data.get("callback_url", data.get("callbackUrl")),
             callback_retry_time=data.get("callback_retry_time", data.get("callbackRetryTime")),
+        )
+
+
+@dataclass
+class SplitConfigResponse:
+    """工作空间或类别的拆套配置。"""
+
+    workspace_id: str
+    scope: str
+    rule_mode: str
+    rule_order: List[str] = field(default_factory=list)
+    constraint: str = "none"
+    llm_prompt_mode: str = "default"
+    category_id: Optional[str] = None
+    llm_prompt: Optional[str] = None
+
+    @classmethod
+    def from_dict(cls, data: Dict[str, Any]) -> "SplitConfigResponse":
+        """从 API 的 snake_case 响应构造配置模型。"""
+        category_id = data.get("category_id")
+        return cls(
+            workspace_id=str(data.get("workspace_id", "")),
+            scope=data.get("scope", ""),
+            category_id=str(category_id) if category_id is not None else None,
+            rule_mode=data.get("rule_mode", ""),
+            rule_order=list(data.get("rule_order") or []),
+            constraint=data.get("constraint", "none"),
+            llm_prompt_mode=data.get("llm_prompt_mode", "default"),
+            llm_prompt=data.get("llm_prompt"),
         )

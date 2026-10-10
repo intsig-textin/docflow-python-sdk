@@ -680,6 +680,40 @@ class WorkspaceContext:
         """删除当前工作空间"""
         return self._workspace_resource.delete(workspace_ids=[self.workspace_id])
 
+    def get_split_config(self, scope: str = "workspace", category_id: Optional[str] = None):
+        """获取当前工作空间的空间级或类别级拆套配置。"""
+        return self._workspace_resource.get_split_config(
+            workspace_id=self.workspace_id,
+            scope=scope,
+            category_id=category_id,
+        )
+
+    def update_split_config(
+        self,
+        scope: str,
+        rule_mode: str,
+        rule_order: List[str],
+        category_id: Optional[str] = None,
+        constraint: str = "none",
+        llm_prompt_mode: str = "default",
+        llm_prompt: Optional[Union[str, int, float]] = None,
+    ):
+        """完整替换当前工作空间所选作用域的拆套配置，可选字段使用默认值。
+
+        llm_prompt 接受字符串、int 或有限 float；数字转为字符串，字符串保留原始空白，
+        None 表示省略。bool、非有限 float 和其他类型会抛出 ValidationError。
+        """
+        return self._workspace_resource.update_split_config(
+            workspace_id=self.workspace_id,
+            scope=scope,
+            rule_mode=rule_mode,
+            rule_order=rule_order,
+            category_id=category_id,
+            constraint=constraint,
+            llm_prompt_mode=llm_prompt_mode,
+            llm_prompt=llm_prompt,
+        )
+
     def category(self, category_id: str) -> CategoryContext:
         """
         绑定类别上下文，实现链式调用

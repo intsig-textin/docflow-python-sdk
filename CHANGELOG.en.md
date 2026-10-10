@@ -6,6 +6,14 @@ This document records all notable changes to the Docflow Python SDK.
 
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), and versions follow [Semantic Versioning](https://semver.org/).
 
+## [Unreleased]
+
+### Added
+
+- Added `workspace.get_split_config`, `workspace.update_split_config`, and their bound workspace-context variants for reading and updating workspace- or category-level split configuration by fully replacing the selected scope’s split configuration. Omitted optional fields use existing defaults; concurrent updates use the last database write.
+- Simplified split configuration responses to the saved configuration and target IDs; removed the system rule list and the resolved rule list.
+- Preserve server messages for errors with a business code instead of replacing them with generic HTTP error translations.
+
 ## [1.1.4] - 2026-09-15
 
 ### Added

@@ -6,6 +6,7 @@ from .workspace import (
     WorkspaceCreateResponse,
     WorkspaceListResponse,
     WorkspaceDetailResponse,
+    SplitConfigResponse,
 )
 
 from .category import (
@@ -69,6 +70,7 @@ __all__ = [
     "WorkspaceCreateResponse",
     "WorkspaceListResponse",
     "WorkspaceDetailResponse",
+    "SplitConfigResponse",
     # Category models
     "CategoryInfo",
     "CategoryCreateResponse",

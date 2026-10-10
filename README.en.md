@@ -90,6 +90,24 @@ client.workspace.update(
 client.workspace.delete(workspace_ids=[workspace.workspace_id])
 ```
 
+Read and replace a workspace-level or category-level split configuration through a bound
+workspace context:
+
+```python
+workspace = client.workspace("123")
+config = workspace.get_split_config()
+
+updated = workspace.update_split_config(
+    scope="workspace",
+    rule_mode="custom",
+    rule_order=["page_same", "invoice_diff", "llm_judge"],
+    llm_prompt_mode="default",
+)
+```
+
+The update operation fully replaces the selected scope. Category-level configurations accept
+`inherit` or `custom`; workspace-level configurations accept `default` or `custom`.
+
 ### 3. Manage categories
 
 ```python
@@ -283,6 +301,8 @@ translation fields use the `translated_*` naming convention. Translation respons
 - `get()`: fetch workspace details
 - `update()`: update workspace metadata and access scope
 - `delete()`: delete one or more workspaces
+- `get_split_config()`: read a workspace-level or category-level split configuration
+- `update_split_config()`: fully replace a workspace-level or category-level split configuration
 - `iter()`: iterate through all pages
 
 ## 🔧 Configuration
@@ -349,6 +369,7 @@ python examples/quick_start.py
 python examples/complete_workflow_example.py
 python examples/file_examples.py
 python examples/review_examples.py
+python examples/split_config_example_en.py
 ```
 
 See the [examples guide](examples/README.en.md) for details.

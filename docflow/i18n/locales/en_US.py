@@ -41,6 +41,15 @@ TRANSLATIONS = {
     'error.workspace.page_invalid': 'Page number must be greater than or equal to 1',
     'error.workspace.page_size_invalid': 'Page size must be between 1 and 100',
     'error.workspace.callback_retry_time_invalid': 'Callback retry time must be between 1 and 3',
+    'error.workspace.split_scope_invalid': 'scope must be workspace or category',
+    'error.workspace.split_category_id_unexpected': 'category_id is not allowed for workspace-level split configuration',
+    'error.workspace.split_rule_mode_invalid': 'rule_mode is not valid for the selected scope',
+    'error.workspace.split_rule_order_invalid': 'rule_order must be a list of supported rule strings',
+    'error.workspace.split_rule_duplicate': 'rule_order must not contain duplicate rules',
+    'error.workspace.split_rule_limit_exceeded': 'rule_order must contain at most 7 rules',
+    'error.workspace.split_constraint_invalid': 'constraint is not valid for the selected scope',
+    'error.workspace.split_prompt_mode_invalid': 'llm_prompt_mode must be default or custom',
+    'error.workspace.split_prompt_empty': 'llm_prompt is required for a custom llm_judge prompt',
 
     # Category related
     'error.category.name_invalid': 'Category name cannot be empty and must not exceed 50 characters',

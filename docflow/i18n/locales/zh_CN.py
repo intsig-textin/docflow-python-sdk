@@ -42,6 +42,15 @@ TRANSLATIONS = {
     'error.workspace.page_invalid': '页码必须大于等于 1',
     'error.workspace.page_size_invalid': '每页数量必须在 1-100 之间',
     'error.workspace.callback_retry_time_invalid': '回调重试次数必须在 1-3 之间',
+    'error.workspace.split_scope_invalid': 'scope 只能是 workspace 或 category',
+    'error.workspace.split_category_id_unexpected': '工作空间级拆套配置不能提供 category_id',
+    'error.workspace.split_rule_mode_invalid': 'rule_mode 与当前作用域不匹配',
+    'error.workspace.split_rule_order_invalid': 'rule_order 必须是支持的规则字符串列表',
+    'error.workspace.split_rule_duplicate': 'rule_order 不能包含重复规则',
+    'error.workspace.split_rule_limit_exceeded': 'rule_order 最多包含 7 条规则',
+    'error.workspace.split_constraint_invalid': 'constraint 与当前作用域不匹配',
+    'error.workspace.split_prompt_mode_invalid': 'llm_prompt_mode 只能是 default 或 custom',
+    'error.workspace.split_prompt_empty': 'llm_judge 使用自定义提示词时 llm_prompt 不能为空',
 
     # 类别相关
     'error.category.name_invalid': '类别名称不能为空且最大长度为 50 字符',

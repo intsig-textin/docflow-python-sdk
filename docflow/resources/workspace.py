@@ -1,12 +1,14 @@
 """
 工作空间资源操作类
 """
+from math import isfinite
 from typing import List, Optional, Union, TYPE_CHECKING
 from .base import BaseResource
 from ..models.workspace import (
     WorkspaceCreateResponse,
     WorkspaceListResponse,
     WorkspaceDetailResponse,
+    SplitConfigResponse,
 )
 from ..exceptions import ValidationError
 from ..enums import AuthScope
@@ -14,6 +16,18 @@ from .._constants import DEFAULT_PAGE, DEFAULT_PAGE_SIZE, API_PREFIX
 
 if TYPE_CHECKING:
     from ..context import WorkspaceContext
+
+
+_SPLIT_RULES = {
+    "page_same",
+    "page_reset",
+    "invoice_diff",
+    "invoice_same",
+    "page_seq",
+    "table_continue",
+    "llm_judge",
+}
+_SPLIT_CONSTRAINTS = {"none", "strict_single_page", "strict_multi_page", "strict_once"}
 
 
 class WorkspaceResource(BaseResource):
@@ -429,6 +443,138 @@ class WorkspaceResource(BaseResource):
         payload = {"workspace_ids": workspace_ids}
 
         self.http_client.post(f"{API_PREFIX}/workspace/delete", json_data=payload)
+
+    def get_split_config(
+        self,
+        workspace_id: str,
+        scope: str = "workspace",
+        category_id: Optional[str] = None,
+    ) -> SplitConfigResponse:
+        """获取指定空间或类别保存的拆套配置。
+
+        rule_mode=inherit 表示类别跟随空间；返回值不展开继承后的规则。
+        rule_order 是本级保存的规则顺序。llm_judge 是模型判断规则，
+        llm_prompt_mode 控制该规则使用默认提示词还是 llm_prompt。
+        """
+        self._validate_split_config_target(workspace_id, scope, category_id)
+        params = {"workspace_id": workspace_id, "scope": scope}
+        if category_id is not None:
+            params["category_id"] = category_id
+        response = self.http_client.get(
+            f"{API_PREFIX}/split-config/get", params=params
+        )
+        return SplitConfigResponse.from_dict(response["result"])
+
+    def update_split_config(
+        self,
+        workspace_id: str,
+        scope: str,
+        rule_mode: str,
+        rule_order: List[str],
+        category_id: Optional[str] = None,
+        constraint: str = "none",
+        llm_prompt_mode: str = "default",
+        llm_prompt: Optional[Union[str, int, float]] = None,
+    ) -> SplitConfigResponse:
+        """完整替换所选作用域的拆套配置；可选字段使用默认值，并发更新以最后一次数据库写入为准。
+
+        llm_prompt 接受字符串、int 或有限 float；数字转为字符串，字符串保留原始空白，
+        None 表示省略。bool、非有限 float 和其他类型会抛出 ValidationError。
+        """
+        self._validate_split_config_target(workspace_id, scope, category_id)
+        valid_modes = {"workspace": {"default", "custom"}, "category": {"inherit", "custom"}}
+        if rule_mode not in valid_modes[scope]:
+            raise ValidationError(
+                f"scope={scope} 时不支持 rule_mode={rule_mode}",
+                i18n_key="error.workspace.split_rule_mode_invalid",
+            )
+        if not isinstance(rule_order, list):
+            raise ValidationError(
+                "rule_order 必须是列表",
+                i18n_key="error.workspace.split_rule_order_invalid",
+            )
+        if len(rule_order) > len(_SPLIT_RULES):
+            raise ValidationError(
+                "rule_order 最多包含 7 条规则",
+                i18n_key="error.workspace.split_rule_limit_exceeded",
+            )
+        if any(not isinstance(rule, str) for rule in rule_order):
+            raise ValidationError(
+                "rule_order 必须是字符串列表",
+                i18n_key="error.workspace.split_rule_order_invalid",
+            )
+        if len(set(rule_order)) != len(rule_order):
+            raise ValidationError(
+                "rule_order 不能包含重复规则",
+                i18n_key="error.workspace.split_rule_duplicate",
+            )
+        if any(rule not in _SPLIT_RULES for rule in rule_order):
+            raise ValidationError(
+                "rule_order 包含不支持的规则",
+                i18n_key="error.workspace.split_rule_order_invalid",
+            )
+        if constraint not in _SPLIT_CONSTRAINTS or (scope == "workspace" and constraint != "none"):
+            raise ValidationError(
+                "constraint 与当前作用域不匹配",
+                i18n_key="error.workspace.split_constraint_invalid",
+            )
+        if llm_prompt_mode not in {"default", "custom"}:
+            raise ValidationError(
+                "llm_prompt_mode 只能是 default 或 custom",
+                i18n_key="error.workspace.split_prompt_mode_invalid",
+            )
+        if llm_prompt is not None and not isinstance(llm_prompt, str):
+            if isinstance(llm_prompt, bool) or not isinstance(llm_prompt, (int, float)):
+                raise ValidationError("llm_prompt 必须是字符串、int 或有限 float")
+            if isinstance(llm_prompt, float) and not isfinite(llm_prompt):
+                raise ValidationError("llm_prompt 必须是字符串、int 或有限 float")
+            llm_prompt = str(llm_prompt)
+        if "llm_judge" in rule_order and llm_prompt_mode == "custom" and not (llm_prompt or "").strip():
+            raise ValidationError(
+                "llm_judge 使用自定义提示词时 llm_prompt 不能为空",
+                i18n_key="error.workspace.split_prompt_empty",
+            )
+        payload = {
+            "workspace_id": workspace_id,
+            "scope": scope,
+            "rule_mode": rule_mode,
+            "rule_order": rule_order,
+            "constraint": constraint,
+            "llm_prompt_mode": llm_prompt_mode,
+        }
+        if category_id is not None:
+            payload["category_id"] = category_id
+        if llm_prompt is not None:
+            payload["llm_prompt"] = llm_prompt
+        response = self.http_client.post(
+            f"{API_PREFIX}/split-config/update", json_data=payload
+        )
+        return SplitConfigResponse.from_dict(response["result"])
+
+    @staticmethod
+    def _validate_split_config_target(
+        workspace_id: str, scope: str, category_id: Optional[str]
+    ) -> None:
+        if not workspace_id or not workspace_id.isdigit():
+            raise ValidationError(
+                "工作空间 ID 格式错误，必须是数字",
+                i18n_key="error.workspace.id_invalid",
+            )
+        if scope not in {"workspace", "category"}:
+            raise ValidationError(
+                "scope 只能是 workspace 或 category",
+                i18n_key="error.workspace.split_scope_invalid",
+            )
+        if scope == "category" and (not category_id or not category_id.isdigit()):
+            raise ValidationError(
+                "类别级拆套配置必须提供数字格式的 category_id",
+                i18n_key="error.category.id_invalid",
+            )
+        if scope == "workspace" and category_id is not None:
+            raise ValidationError(
+                "工作空间级拆套配置不能提供 category_id",
+                i18n_key="error.workspace.split_category_id_unexpected",
+            )
 
     def iter(
         self,
