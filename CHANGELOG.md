@@ -9,6 +9,8 @@
 
 ## [Unreleased]
 
+## [1.1.5] - 2026-10-10
+
 ### Added
 
 - 新增 `workspace.get_split_config`、`workspace.update_split_config` 及对应工作空间上下文方法，支持读取和更新空间级、类别级拆套配置，完整替换所选作用域的拆套配置；省略可选字段时使用既有默认值，并发更新以最后一次数据库写入为准。

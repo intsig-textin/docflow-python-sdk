@@ -8,6 +8,8 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), and
 
 ## [Unreleased]
 
+## [1.1.5] - 2026-10-10
+
 ### Added
 
 - Added `workspace.get_split_config`, `workspace.update_split_config`, and their bound workspace-context variants for reading and updating workspace- or category-level split configuration by fully replacing the selected scope’s split configuration. Omitted optional fields use existing defaults; concurrent updates use the last database write.
