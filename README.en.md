@@ -1,6 +1,6 @@
 # Docflow Python SDK
 
-[简体中文](README.md) | [English](README.en.md)
+[简体中文](https://github.com/intsig-textin/docflow-python-sdk/blob/master/README.md) | [English](https://github.com/intsig-textin/docflow-python-sdk/blob/master/README.en.md)
 
 Docflow Python SDK provides a concise, Pythonic API for integrating Docflow document processing and review capabilities.
 
